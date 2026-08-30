@@ -1,0 +1,147 @@
+import { useState, useEffect, useMemo } from 'react'
+
+/**
+ * TabelMaster - Komponen tabel reusable untuk semua Data Master
+ * 
+ * Props:
+ * - columns: [{ key, label, render?, sortable?, width? }]
+ * - data: array of objects
+ * - searchKey: key untuk pencarian (bisa array untuk multi-field)
+ * - searchPlaceholder: placeholder input search
+ * - emptyMessage: message saat data kosong
+ * - onRowClick?: (row) => void
+ * - striped?: boolean (default true)
+ * - compact?: boolean (default false)
+ */
+export function TabelMaster({
+  columns,
+  data,
+  searchKey,
+  searchPlaceholder = 'Cari...',
+  emptyMessage = 'Tidak ada data',
+  onRowClick,
+  striped = true,
+  compact = false,
+}) {
+  const [search, setSearch] = useState('')
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
+
+  // Filter data berdasarkan pencarian
+  const filteredData = useMemo(() => {
+    if (!search.trim()) return data
+    const q = search.toLowerCase().trim()
+    const keys = Array.isArray(searchKey) ? searchKey : [searchKey]
+    return data.filter(row =>
+      keys.some(key => {
+        const val = row[key]
+        return val != null && String(val).toLowerCase().includes(q)
+      })
+    )
+  }, [data, search, searchKey])
+
+  // Sort data
+  const sortedData = useMemo(() => {
+    if (!sortConfig.key) return filteredData
+    return [...filteredData].sort((a, b) => {
+      const aVal = a[sortConfig.key] ?? ''
+      const bVal = b[sortConfig.key] ?? ''
+      if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1
+      if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1
+      return 0
+    })
+  }, [filteredData, sortConfig])
+
+  const handleSort = (key) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc',
+    }))
+  }
+
+  const cellPadding = compact ? 'px-3 py-2' : 'px-4 py-3'
+
+  return (
+    <div className="space-y-3">
+      {/* Search */}
+      <div className="flex items-center gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder={searchPlaceholder}
+            className="input pl-10"
+          />
+        </div>
+        <span className="text-caption text-[var(--text-muted)]">
+          {sortedData.length} dari {data.length} data
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="table-container">
+        <table className="table">
+          <thead>
+            <tr>
+              <th className={`${cellPadding} w-12`}>
+                <span className="text-[11px] font-medium text-[var(--text-muted)]">No</span>
+              </th>
+              {columns.map(col => (
+                <th
+                  key={col.key}
+                  className={`${cellPadding} ${col.sortable !== false ? 'cursor-pointer hover:text-[var(--text-primary)]' : ''}`}
+                  onClick={() => col.sortable !== false && handleSort(col.key)}
+                  style={{ width: col.width }}
+                >
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">{col.label}</span>
+                    {col.sortable !== false && sortConfig.key === col.key && (
+                      <svg className="w-3 h-3 text-[var(--brand-primary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        {sortConfig.direction === 'asc' ? <path d="M12 5l-7 7h14l-7-7z" /> : <path d="M12 19l7-7H5l7 7z" />}
+                      </svg>
+                    )}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedData.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length + 1} className={`${cellPadding} text-center`}>
+                  <div className="py-8">
+                    <svg className="w-10 h-10 mx-auto text-[var(--text-muted)] mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                      <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p className="text-body-sm text-[var(--text-muted)]">
+                      {search ? `Tidak ditemukan "${search}"` : emptyMessage}
+                    </p>
+                  </div>
+                </td>
+              </tr>
+            ) : (
+              sortedData.map((row, idx) => (
+                <tr
+                  key={row.id || idx}
+                  className={onRowClick ? 'cursor-pointer' : ''}
+                  onClick={() => onRowClick?.(row)}
+                >
+                  <td className={`${cellPadding} text-caption text-[var(--text-muted)]`}>{idx + 1}</td>
+                  {columns.map(col => (
+                    <td key={col.key} className={cellPadding}>
+                      {col.render ? col.render(row[col.key], row) : row[col.key]}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
