@@ -1,6 +1,19 @@
 import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
+import { Card, Badge, Input } from '../../../shared/components/ui.jsx'
+import { TabelMaster } from '../../../shared/components/TabelMaster.jsx'
+import {
+  getCurrentBranchId,
+  getDepoObat,
+  addDepoObat,
+  getPoli,
+  addPoli,
+  addRuangan,
+  getTindakanMedis,
+  addTindakanMedis,
+} from '../../../shared/store/clinic.js'
+
 export default function DataMasterPage() {
   const branchId = getCurrentBranchId()
   const location = useLocation()
