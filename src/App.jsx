@@ -7,9 +7,7 @@ import { bootstrapAuth } from './shared/auth.js'
 import DashboardPage from './features/dashboard/pages/DashboardPage.jsx'
 import PendaftaranPage from './features/front-office/pages/PendaftaranPage.jsx'
 import PasienPage from './features/front-office/pages/PasienPage.jsx'
-import DepoObatPage from './features/master/pages/DepoObatPage.jsx'
-import PoliklinikPage from './features/master/pages/PoliklinikPage.jsx'
-import TindakanMedisPage from './features/master/pages/TindakanMedisPage.jsx'
+import DataMasterPage from './features/master/pages/DataMasterPage.jsx'
 
 function ComingSoon() {
   const location = useLocation()
@@ -129,10 +127,10 @@ export default function App() {
         <Route path="/unit-lokasi" element={<Protected><AppShell><DataMasterPage /></AppShell></Protected>} />
         <Route path="/poliklinik" element={<Protected><AppShell><DataMasterPage /></AppShell></Protected>} />
         <Route path="/tindakan" element={<Protected><AppShell><DataMasterPage /></AppShell></Protected>} />
-        <Route path="/nakes-pengguna" element={<Protected><AppShell><DataMasterPage /></AppShell></Protected>} />
-        <Route path="/obat-alkes" element={<Protected><AppShell><DataMasterPage /></AppShell></Protected>} />
-        <Route path="/asuransi" element={<Protected><AppShell><DataMasterPage /></AppShell></Protected>} />
-        <Route path="/aturan-pakai" element={<Protected><AppShell><DataMasterPage /></AppShell></Protected>} />
+        <Route path="/nakes-pengguna" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
+        <Route path="/obat-alkes" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
+        <Route path="/asuransi" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
+        <Route path="/aturan-pakai" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
 
         {/* Rawat Jalan (Top Level) */}
         <Route path="/pendaftaran-baru" element={<Protected><AppShell><PendaftaranPage /></AppShell></Protected>} />
