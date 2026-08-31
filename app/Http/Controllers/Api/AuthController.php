@@ -5,15 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    /**
-     * Login - hanya admin yang bisa akses
-     */
     public function login(Request $request)
     {
         $request->validate([
@@ -29,22 +25,41 @@ class AuthController extends Controller
             ]);
         }
 
-        // Cek apakah user aktif
         if (!$user->isActive()) {
             throw ValidationException::withMessages([
                 'email' => ['Akun Anda tidak aktif. Hubungi administrator.'],
             ]);
         }
 
-        // Cek apakah user adalah admin
         if (!$user->isAdmin()) {
             throw ValidationException::withMessages([
                 'email' => ['Anda tidak memiliki akses. Hanya admin yang bisa login.'],
             ]);
         }
 
-        // Buat token Sanctum
         $token = $user->createToken('auth-token')->plainTextToken;
+
+        // Get user branches
+        $branches = $user->branches()->get()->map(function ($branch) {
+            return [
+                'id' => $branch->id,
+                'name' => $branch->name,
+                'code' => $branch->code,
+                'is_default' => $branch->pivot->is_default,
+            ];
+        });
+
+        // If no branches assigned via pivot, use default branch
+        if ($branches->isEmpty() && $user->branch) {
+            $branches = collect([
+                [
+                    'id' => $user->branch->id,
+                    'name' => $user->branch->name,
+                    'code' => $user->branch->code,
+                    'is_default' => true,
+                ]
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -56,13 +71,11 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch?->name,
+                'branches' => $branches,
             ],
         ]);
     }
 
-    /**
-     * Logout
-     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -73,12 +86,29 @@ class AuthController extends Controller
         ]);
     }
 
-    /**
-     * Get authenticated user
-     */
     public function me(Request $request)
     {
         $user = $request->user();
+
+        $branches = $user->branches()->get()->map(function ($branch) {
+            return [
+                'id' => $branch->id,
+                'name' => $branch->name,
+                'code' => $branch->code,
+                'is_default' => $branch->pivot->is_default,
+            ];
+        });
+
+        if ($branches->isEmpty() && $user->branch) {
+            $branches = collect([
+                [
+                    'id' => $user->branch->id,
+                    'name' => $user->branch->name,
+                    'code' => $user->branch->code,
+                    'is_default' => true,
+                ]
+            ]);
+        }
 
         return response()->json([
             'success' => true,
@@ -89,6 +119,7 @@ class AuthController extends Controller
                 'role' => $user->role,
                 'branch_id' => $user->branch_id,
                 'branch_name' => $user->branch?->name,
+                'branches' => $branches,
             ],
         ]);
     }
