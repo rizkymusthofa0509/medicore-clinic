@@ -86,13 +86,13 @@ function AccountMenu({ user, onLogout }) {
   const init = initialsOf(name)
   return (
     <div className="relative" ref={ref}>
-      <button type="button" onClick={() => setOpen((v) => !v)} className="flex items-center gap-2 rounded-lg border border-[var(--border-primary)] bg-[var(--bg-secondary)] pl-1.5 pr-2 py-1.5 hover:bg-[var(--bg-hover)] transition-colors" title="Akun" aria-haspopup="menu" aria-expanded={open}>
-        <span className="grid h-7 w-7 place-items-center rounded-md font-mono text-[0.625rem] font-bold bg-[var(--brand-primary)] text-white">{init}</span>
-        <span className="hidden text-body-sm font-medium text-[var(--text-primary)] sm:block max-w-[100px] truncate">{name}</span>
-        <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 text-[var(--text-muted)] transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
+      <button type="button" onClick={() => setOpen((v) => !v)} className="flex items-center gap-2 rounded-lg bg-white/10 backdrop-blur-sm border border-white/20 pl-1.5 pr-2 py-1.5 hover:bg-white/20 transition-colors text-white" title="Akun" aria-haspopup="menu" aria-expanded={open}>
+        <span className="grid h-7 w-7 place-items-center rounded-md font-mono text-[0.625rem] font-bold bg-white/25 text-white">{init}</span>
+        <span className="hidden text-body-sm font-medium text-white sm:block max-w-[100px] truncate">{name}</span>
+        <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 text-white/80 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-full mt-2 w-56 origin-top-right rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-elevated)] p-1.5 z-50">
+        <div role="menu" className="absolute right-0 top-full mt-2 w-56 origin-top-right rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-large)] p-1.5 z-50">
           <div className="px-3 py-2 border-b border-[var(--border-primary)] mb-1"><p className="text-body-sm font-semibold text-[var(--text-primary)] truncate">{name}</p></div>
           <button type="button" role="menuitem" onClick={() => { setOpen(false); navigate('/setting') }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-body-sm text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors">
             <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
@@ -109,13 +109,10 @@ function AccountMenu({ user, onLogout }) {
   )
 }
 
-function HeaderThemeToggle() {
-  const [isDark, setIsDark] = useState(() => typeof document !== 'undefined' && document.documentElement.classList.contains('dark'))
-  useEffect(() => { const sync = () => setIsDark(document.documentElement.classList.contains('dark')); window.addEventListener('theme-changed', sync); return () => window.removeEventListener('theme-changed', sync) }, [])
-  const handle = () => { toggleTheme(); window.dispatchEvent(new Event('theme-changed')) }
+function HeaderThemeToggle({ handleThemeToggle }) {
   return (
-    <button type="button" onClick={handle} className="btn btn-secondary btn-icon" title={isDark ? 'Ganti ke mode terang' : 'Ganti ke mode gelap'} aria-label="Toggle theme">
-      {isDark ? (<svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" /></svg>) : (<svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>)}
+    <button type="button" onClick={handleThemeToggle} className="btn btn-secondary btn-icon" title="Toggle theme">
+      <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
     </button>
   )
 }
@@ -240,6 +237,7 @@ export default function AppShell({ children }) {
   const requestLogout = () => setLogoutOpen(true)
   const [loggingOut, setLoggingOut] = useState(false)
   const confirmLogout = async () => { setLoggingOut(true); try { await logout() } finally { setLoggingOut(false); setLogoutOpen(false); navigate('/login', { replace: true }) } }
+  const handleThemeToggle = () => { toggleTheme(); window.dispatchEvent(new Event('theme-changed')) }
 
   const sidebarWidth = collapsed ? 'w-16' : 'w-64'
   const footerLeft = collapsed ? 'left-16' : 'left-64'
@@ -279,33 +277,52 @@ export default function AppShell({ children }) {
       </aside>
       
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
+        <header className="sticky top-0 z-30 bg-gradient-to-r from-[#1b4332] via-[#2d6a4f] to-[#1b4332] shadow-lg shadow-[#1b4332]/20">
           <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
-            <button type="button" onClick={() => setMobileOpen(true)} className="grid h-9 w-9 place-items-center text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded-md lg:hidden" title="Buka menu">
+            <button type="button" onClick={() => setMobileOpen(true)} className="grid h-9 w-9 place-items-center text-white/80 hover:bg-white/10 rounded-md lg:hidden" title="Buka menu">
               <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
             </button>
-            <div className="min-w-0"><h1 className="truncate text-base font-semibold tracking-tight text-[var(--text-primary)]">{title}</h1></div>
+            <div className="min-w-0 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2.5" y="3.5" width="19" height="12" rx="1" fill="none" stroke="white" />
+                  <rect x="4" y="5" width="6" height="2.5" rx="0.5" fill="#b7e4c7" stroke="none" />
+                  <path d="M9 19h6M12 15.5V19" fill="none" stroke="white" />
+                </svg>
+              </div>
+              <h1 className="truncate text-base font-semibold text-white tracking-tight">{title}</h1>
+            </div>
             <div className="ml-auto flex items-center gap-2">
-              <select value={branchId} onChange={(e) => { setCurrentBranch(e.target.value); setBranchIdState(e.target.value) }} className="input input-sm flex-none w-40" title="Pilih Branch">{getBranches().map(b => (<option key={b.id} value={b.id}>{b.nama}</option>))}</select>
-              {/* Signal Icon - Server Status */}
+              <select value={branchId} onChange={(e) => { setCurrentBranch(e.target.value); setBranchIdState(e.target.value) }} className="bg-white/10 backdrop-blur-sm border border-white/20 text-white text-body-sm rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-white/30 w-40" title="Pilih Branch">
+                <option value="" className="text-[#1b4332]">-- Branch --</option>
+                {getBranches().map(b => (<option key={b.id} value={b.id} className="text-[#1b4332]">{b.nama}</option>))}
+              </select>
+              
+              {/* Server Status Icon */}
               <button 
                 type="button" 
-                className={`btn btn-icon relative ${serverStatus === 'online' ? 'text-emerald-500' : serverStatus === 'offline' ? 'text-red-500' : 'text-[var(--text-muted)]'}`}
+                className={`p-2 rounded-lg transition-all ${serverStatus === 'online' ? 'text-emerald-300 hover:bg-white/10' : serverStatus === 'offline' ? 'text-red-300 hover:bg-white/10' : 'text-white/60 hover:bg-white/10'}`}
                 title={`Server: ${serverStatus === 'online' ? 'Online' : serverStatus === 'offline' ? 'Offline' : 'Checking...'}`}
                 onClick={checkServerConnection}
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M2 16h.01M6 16h.01M10 16h.01M14 16h.01M18 16h.01" strokeLinecap="round" />
                   <path d="M2 12h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01" strokeLinecap="round" />
                   <path d="M2 8h.01M6 8h.01M10 8h.01" strokeLinecap="round" />
-                  {serverStatus === 'online' && <circle cx="18" cy="8" r="2" fill="currentColor" stroke="none" />}
-                  {serverStatus === 'offline' && <circle cx="18" cy="8" r="2" fill="none" stroke="currentColor" strokeWidth="2" />}
-                  {serverStatus === 'checking' && <circle cx="18" cy="8" r="2" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />}
+                  {serverStatus === 'online' && <circle cx="18" cy="8" r="2.5" fill="currentColor" stroke="none" />}
+                  {serverStatus === 'offline' && <circle cx="18" cy="8" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" />}
+                  {serverStatus === 'checking' && <circle cx="18" cy="8" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />}
                 </svg>
-                {serverStatus === 'online' && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
-                {serverStatus === 'offline' && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />}
               </button>
-              <HeaderThemeToggle />
+
+              <button type="button" onClick={handleThemeToggle} className="p-2 rounded-lg text-white/80 hover:bg-white/10 transition-all" title="Toggle theme">
+                {isDark ? (
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 6.34l-1.41 1.41M19.07 4.93l-1.41 1.41" /></svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                )}
+              </button>
+              
               <AccountMenu onLogout={requestLogout} />
             </div>
           </div>

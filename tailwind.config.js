@@ -5,81 +5,47 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Tritama Estetika Konstruksi — palet soft, glassy, friendly
-        // Bone (warm paper), Iron (soft graphite), Safety (warm coral), Cement (warm gray), Steel (soft blue)
-        iron: {
-          50:  '#f8fafc',
-          100: '#f1f5f9',
-          200: '#e2e8f0',
-          300: '#cbd5e1',
-          400: '#94a3b8',
-          500: '#64748b',
-          600: '#475569',
-          700: '#334155',
-          800: '#1e293b',
-          900: '#0f172a',
-          950: '#020617',
+        // Medicore Clinic — Healthcare Green Theme
+        green: {
+          50:  '#f0f9f4',
+          100: '#dcf0e4',
+          200: '#b7e4c7',
+          300: '#95d5b2',
+          400: '#74c69d',
+          500: '#52b788',
+          600: '#40916c',
+          700: '#2d6a4f',
+          800: '#1b4332',
+          900: '#0d3d2a',
+          950: '#051f15',
         },
-        bone: {
-          50:  '#fdfcfa',  // background light utama — soft warm white
-          100: '#f7f4ee',  // warm paper, background light default
-          200: '#ece7dd',  // divider subtle
-          300: '#d8d0c2',
-          400: '#b9b1a0',
-          500: '#988f7e',
+        brand: {
+          primary: '#2d6a4f',
+          hover: '#1b4332',
+          light: '#d8f3dc',
         },
-        safety: {
-          50:  '#fff4ed',
-          100: '#ffe6d5',
-          200: '#ffc9a8',
-          300: '#ffa372',
-          400: '#ff7a47',
-          500: '#f5612a',  // warm coral — aksen utama, lebih lembut dari orange safety
-          600: '#e64a16',
-          700: '#c13a0e',
-          800: '#9a2f0c',
-          900: '#7c2a0e',
-        },
-        cement: {
-          100: '#f1efe9',
-          200: '#e2dfd6',
-          300: '#b8b3a8',
-          400: '#8a857a',
-          500: '#65615a',
-        },
-        steel: {
-          400: '#7d9bbb',
-          500: '#5b83a8',
-          600: '#3f6991',  // soft blue steel — info/data
-          700: '#2d5074',
-          800: '#1f3d5c',
-        },
-        // Semantic status colors — pastel/soft
         status: {
-          success: { light: '#2f9b6a', dark: '#6ee7b7' },
-          warning: { light: '#c47a1a', dark: '#fcd34d' },
-          danger:  { light: '#d65548', dark: '#fca5a5' },
-          info:    { light: '#3f6991', dark: '#93c5fd' },
+          success: { light: '#2d6a4f', dark: '#6ee7b7' },
+          warning: { light: '#e9c46a', dark: '#fcd34d' },
+          danger:  { light: '#e76f51', dark: '#fca5a5' },
+          info:    { light: '#48cae4', dark: '#93c5fd' },
         },
       },
       fontFamily: {
-        // Body: IBM Plex Sans — typeface engineering/technical (NASA, IBM industrial)
-        // Heading: sama, dengan weight lebih berat — lebih solid, less playful
-        // Mono: IBM Plex Mono untuk nomor SPB, kode material
-        sans: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
-        display: ['"IBM Plex Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+        // DM Sans — clean, professional, modern
+        sans: ['"DM Sans"', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+        display: ['"Space Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       fontSize: {
-        // Skala tipografi utilitarian — tidak ada display yang terlalu besar
-        'display-xl': ['clamp(2.25rem, 4.5vw, 3.25rem)', { lineHeight: '1.1', letterSpacing: '-0.02em', fontWeight: '600' }],
-        'display-lg': ['clamp(1.75rem, 3.5vw, 2.5rem)', { lineHeight: '1.15', letterSpacing: '-0.015em', fontWeight: '600' }],
-        'display-md': ['clamp(1.375rem, 2.5vw, 1.875rem)', { lineHeight: '1.2', letterSpacing: '-0.01em', fontWeight: '600' }],
-        'display-sm': ['clamp(1.125rem, 2vw, 1.5rem)', { lineHeight: '1.25', letterSpacing: '-0.005em', fontWeight: '600' }],
+        'display-xl': ['clamp(2.5rem, 5vw, 3.5rem)', { lineHeight: '1.1', letterSpacing: '-0.025em', fontWeight: '700' }],
+        'display-lg': ['clamp(2rem, 4vw, 2.75rem)', { lineHeight: '1.15', letterSpacing: '-0.02em', fontWeight: '700' }],
+        'display-md': ['clamp(1.5rem, 3vw, 2rem)', { lineHeight: '1.2', letterSpacing: '-0.015em', fontWeight: '600' }],
+        'display-sm': ['clamp(1.25rem, 2.5vw, 1.5rem)', { lineHeight: '1.25', letterSpacing: '-0.01em', fontWeight: '600' }],
         'heading-lg':  ['1.25rem', { lineHeight: '1.3', fontWeight: '600' }],
         'heading-md':  ['1.125rem', { lineHeight: '1.35', fontWeight: '600' }],
         'heading-sm':  ['1rem', { lineHeight: '1.4', fontWeight: '600' }],
-        'body-lg':     ['1rem', { lineHeight: '1.55' }],
+        'body-lg':     ['1rem', { lineHeight: '1.6' }],
         'body':        ['0.875rem', { lineHeight: '1.55' }],
         'body-sm':     ['0.8125rem', { lineHeight: '1.5' }],
         'caption':     ['0.75rem', { lineHeight: '1.4' }],
@@ -88,33 +54,25 @@ export default {
       spacing: {
         '18': '4.5rem',
         '22': '5.5rem',
-        '26': '6.5rem',
       },
       borderRadius: {
-        // Soft, generous rounding — glassy/friendly
-        'sm': '0.5rem',
+        sm: '0.5rem',
         DEFAULT: '0.75rem',
-        'md': '0.75rem',
-        'lg': '1rem',
-        'xl': '1.25rem',
-        '2xl': '1.5rem',
-        '3xl': '2rem',
+        md: '0.75rem',
+        lg: '1rem',
+        xl: '1.5rem',
+        '2xl': '2rem',
       },
       boxShadow: {
-        // Soft layered shadows — bukan plate offset yang kaku
-        'soft': '0 2px 4px -1px rgb(15 23 42 / 0.04), 0 1px 2px -1px rgb(15 23 42 / 0.06)',
-        'soft-md': '0 4px 8px -2px rgb(15 23 42 / 0.06), 0 2px 4px -2px rgb(15 23 42 / 0.04)',
-        'soft-lg': '0 10px 24px -6px rgb(15 23 42 / 0.08), 0 4px 8px -4px rgb(15 23 42 / 0.05), 0 0 0 1px rgb(15 23 42 / 0.04)',
-        'soft-xl': '0 20px 40px -12px rgb(15 23 42 / 0.18), 0 8px 16px -8px rgb(15 23 42 / 0.08), 0 0 0 1px rgb(15 23 42 / 0.04)',
-        'glass': '0 8px 32px -8px rgb(15 23 42 / 0.10), inset 0 1px 0 0 rgb(255 255 255 / 0.6)',
-        'pressed': 'inset 0 1px 2px 0 rgb(15 23 42 / 0.06)',
-        'glow': '0 0 0 4px rgb(99 102 241 / 0.12)',
-        'ring-soft': '0 0 0 1px rgb(15 23 42 / 0.06)',
+        soft: '0 2px 8px -2px rgba(13, 61, 42, 0.08), 0 1px 3px -1px rgba(13, 61, 42, 0.04)',
+        'soft-md': '0 4px 16px -4px rgba(13, 61, 42, 0.1), 0 2px 6px -2px rgba(13, 61, 42, 0.06)',
+        'soft-lg': '0 12px 32px -8px rgba(13, 61, 42, 0.12), 0 4px 12px -4px rgba(13, 61, 42, 0.06)',
+        'soft-xl': '0 20px 48px -12px rgba(13, 61, 42, 0.18), 0 8px 16px -8px rgba(13, 61, 42, 0.08)',
+        glass: '0 8px 32px -8px rgba(13, 61, 42, 0.15), inset 0 1px 0 0 rgba(255, 255, 255, 0.8)',
+        glow: '0 0 20px -5px rgba(45, 106, 79, 0.3)',
       },
       transitionTimingFunction: {
-        'spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',
-        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
-        'mech': 'cubic-bezier(0.2, 0, 0, 1)',  // mekanik, cepat, tidak playful
+        smooth: 'cubic-bezier(0.4, 0, 0.2, 1)',
       },
     },
   },

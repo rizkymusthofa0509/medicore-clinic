@@ -1,13 +1,16 @@
 // ============================================================
-// shared/auth.js — Demo auth untuk Medicore Clinic
-// Token & profile disimpa di localStorage (tanpa enkripsi).
+// shared/auth.js — Auth management dengan enkripsi localStorage
+// Token disimpan terenkripsi, expired hanya saat logout
 // ============================================================
+
+import { secureStore, secureRetrieve, secureRemove } from './crypto.js'
 
 const TOKEN_KEY = 'medicore_token'
 const USER_KEY = 'medicore_user'
 
 export function getToken() {
-  return localStorage.getItem(TOKEN_KEY)
+  const data = secureRetrieve(TOKEN_KEY)
+  return data?.token || null
 }
 
 export function isAuthed() {
@@ -15,20 +18,15 @@ export function isAuthed() {
 }
 
 export function clearSession() {
-  localStorage.removeItem(TOKEN_KEY)
-  localStorage.removeItem(USER_KEY)
+  secureRemove(TOKEN_KEY)
+  secureRemove(USER_KEY)
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('auth:changed'))
   }
 }
 
 export function getUser() {
-  try {
-    const raw = localStorage.getItem(USER_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
+  return secureRetrieve(USER_KEY)
 }
 
 export function getUserName() {
@@ -44,5 +42,14 @@ export function logout() {
 }
 
 export async function bootstrapAuth() {
-  return getToken() ? getUser() : null
+  const token = getToken()
+  if (!token) return null
+  const user = getUser()
+  return user
+}
+
+// Simpan token & user setelah login
+export function saveAuthData(token, user) {
+  secureStore(TOKEN_KEY, { token })
+  secureStore(USER_KEY, user)
 }
