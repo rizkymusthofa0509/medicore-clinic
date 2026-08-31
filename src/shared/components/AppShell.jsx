@@ -5,6 +5,7 @@ import { toggleTheme } from '../theme.js'
 import { getUser, logout } from '../auth.js'
 import { ConfirmDialog } from './ui.jsx'
 import { getBranches, getCurrentBranchId, setCurrentBranch } from '../../shared/store/clinic.js'
+import { pingServer } from '../api.js'
 
 const MENU = [
   { group: 'Umum', items: [{ label: 'Dashboard', to: '/', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', end: true }] },
@@ -194,6 +195,8 @@ export default function AppShell({ children }) {
   const title = PAGE_TITLES[location.pathname] || 'Medicore Clinic'
   const [user, setUser] = useState(null)
   const [branchId, setBranchIdState] = useState(() => getCurrentBranchId())
+  const [serverStatus, setServerStatus] = useState('checking') // 'online' | 'offline' | 'checking'
+  const pingIntervalRef = useRef(null)
   
   // Sidebar collapsed state - persisted to localStorage
   const [collapsed, setCollapsed] = useState(() => {
@@ -203,6 +206,21 @@ export default function AppShell({ children }) {
   useEffect(() => {
     try { localStorage.setItem('medicore_sidebar_collapsed', String(collapsed)) } catch { /* ignore */ }
   }, [collapsed])
+  
+  // Ping server untuk cek koneksi
+  const checkServerConnection = async () => {
+    const result = await pingServer()
+    setServerStatus(result.online ? 'online' : 'offline')
+  }
+  
+  useEffect(() => {
+    checkServerConnection()
+    // Ping setiap 30 detik
+    pingIntervalRef.current = setInterval(checkServerConnection, 30000)
+    return () => {
+      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current)
+    }
+  }, [])
   
   useEffect(() => { setBranchIdState(getCurrentBranchId()) }, [location.pathname])
   useEffect(() => {
@@ -269,13 +287,23 @@ export default function AppShell({ children }) {
             <div className="min-w-0"><h1 className="truncate text-base font-semibold tracking-tight text-[var(--text-primary)]">{title}</h1></div>
             <div className="ml-auto flex items-center gap-2">
               <select value={branchId} onChange={(e) => { setCurrentBranch(e.target.value); setBranchIdState(e.target.value) }} className="input input-sm flex-none w-40" title="Pilih Branch">{getBranches().map(b => (<option key={b.id} value={b.id}>{b.nama}</option>))}</select>
-              <button type="button" className="btn btn-secondary btn-icon" title="Koneksi Server - Online">
+              {/* Signal Icon - Server Status */}
+              <button 
+                type="button" 
+                className={`btn btn-icon relative ${serverStatus === 'online' ? 'text-emerald-500' : serverStatus === 'offline' ? 'text-red-500' : 'text-[var(--text-muted)]'}`}
+                title={`Server: ${serverStatus === 'online' ? 'Online' : serverStatus === 'offline' ? 'Offline' : 'Checking...'}`}
+                onClick={checkServerConnection}
+              >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M2 16h.01M6 16h.01M10 16h.01M14 16h.01M18 16h.01" strokeLinecap="round" />
                   <path d="M2 12h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01" strokeLinecap="round" />
                   <path d="M2 8h.01M6 8h.01M10 8h.01" strokeLinecap="round" />
-                  <circle cx="18" cy="8" r="2" fill="#41668a" stroke="#41668a" />
+                  {serverStatus === 'online' && <circle cx="18" cy="8" r="2" fill="currentColor" stroke="none" />}
+                  {serverStatus === 'offline' && <circle cx="18" cy="8" r="2" fill="none" stroke="currentColor" strokeWidth="2" />}
+                  {serverStatus === 'checking' && <circle cx="18" cy="8" r="2" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />}
                 </svg>
+                {serverStatus === 'online' && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+                {serverStatus === 'offline' && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500" />}
               </button>
               <HeaderThemeToggle />
               <AccountMenu onLogout={requestLogout} />
