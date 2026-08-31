@@ -26,7 +26,9 @@ export function clearSession() {
 }
 
 export function getUser() {
-  return secureRetrieve(USER_KEY)
+  const data = secureRetrieve(USER_KEY)
+  console.log('[Auth] getUser:', data)
+  return data
 }
 
 export function getUserName() {

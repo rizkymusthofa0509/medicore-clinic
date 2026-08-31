@@ -257,17 +257,25 @@ export default function AppShell({ children }) {
 
   // Filter branches based on user access
   useEffect(() => {
+    console.log('[Branch Filter] user:', user)
+    console.log('[Branch Filter] user.branches:', user?.branches)
+    console.log('[Branch Filter] userBranches:', userBranches)
+    console.log('[Branch Filter] allBranches:', allBranches)
+    
     if (user && user.branches && user.branches.length > 0) {
-      const userBranchIds = user.branches.map(b => b.id)
-      const filtered = allBranches.filter(b => userBranchIds.includes(b.id))
+      const userBranchIds = user.branches.map(b => String(b.id))
+      const filtered = allBranches.filter(b => userBranchIds.includes(String(b.id)))
+      console.log('[Branch Filter] filtered from user.branches:', filtered)
       setAccessibleBranches(filtered)
       setShowBranchSelector(filtered.length > 1)
     } else if (userBranches && userBranches.length > 0) {
-      const userBranchIds = userBranches.map(b => b.id)
-      const filtered = allBranches.filter(b => userBranchIds.includes(b.id))
+      const userBranchIds = userBranches.map(b => String(b.id))
+      const filtered = allBranches.filter(b => userBranchIds.includes(String(b.id)))
+      console.log('[Branch Filter] filtered from userBranches:', filtered)
       setAccessibleBranches(filtered)
       setShowBranchSelector(filtered.length > 1)
     } else {
+      console.log('[Branch Filter] using allBranches')
       setAccessibleBranches(allBranches)
       setShowBranchSelector(allBranches.length > 1)
     }
