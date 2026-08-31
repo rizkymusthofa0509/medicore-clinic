@@ -4,8 +4,9 @@ import { BrandLogo } from './Brand.jsx'
 import { toggleTheme } from '../theme.js'
 import { getUser, logout } from '../auth.js'
 import { ConfirmDialog } from './ui.jsx'
-import { getBranches, getCurrentBranchId, setCurrentBranch, getUserBranches, setUserBranches, getAccessibleBranches } from '../../shared/store/clinic.js'
+import { getCurrentBranchId, setCurrentBranch } from '../../shared/store/clinic.js'
 import { pingServer } from '../api.js'
+import api from '../api.js'
 
 const MENU = [
   { group: 'Umum', items: [{ label: 'Dashboard', to: '/', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6', end: true }] },
@@ -49,7 +50,275 @@ function groupContainsPath(group, pathname) {
   return group.items.some((i) => i.to === pathname || (i.end && pathname === '/'))
 }
 
+export default function AppShell({ children }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const title = PAGE_TITLES[location.pathname] || 'Medicore Clinic'
+  
+  // State
+  const [user, setUser] = useState(null)
+  const [allBranches, setAllBranches] = useState([])
+  const [userBranches, setUserBranches] = useState([])
+  const [branchId, setBranchIdState] = useState(() => getCurrentBranchId())
+  const [serverStatus, setServerStatus] = useState('checking')
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('medicore_sidebar_collapsed') === 'true' } catch { return false }
+  })
+  const [activeDropdown, setActiveDropdown] = useState(null)
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false)
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const [loggingOut, setLoggingOut] = useState(false)
+  const pingIntervalRef = useRef(null)
+
+  // Load branches from API
+  useEffect(() => {
+    const loadBranches = async () => {
+      try {
+        const res = await api.get('/api/settings/branches')
+        const branches = res.data.data.map(b => ({
+          id: String(b.id),
+          nama: b.name,
+          code: b.code,
+          status: b.status
+        }))
+        setAllBranches(branches)
+        console.log('[AppShell] Loaded branches from API:', branches)
+      } catch (err) {
+        console.error('[AppShell] Failed to load branches:', err)
+        setAllBranches([])
+      }
+    }
+    loadBranches()
+  }, [])
+
+  // Sidebar collapsed state
+  useEffect(() => {
+    try { localStorage.setItem('medicore_sidebar_collapsed', String(collapsed)) } catch {}
+  }, [collapsed])
+
+  // Ping server
+  const checkServerConnection = async () => {
+    const result = await pingServer()
+    setServerStatus(result.online ? 'online' : 'offline')
+  }
+
+  useEffect(() => {
+    checkServerConnection()
+    pingIntervalRef.current = setInterval(checkServerConnection, 30000)
+    return () => { if (pingIntervalRef.current) clearInterval(pingIntervalRef.current) }
+  }, [])
+
+  // Listen for branch changes
+  useEffect(() => {
+    const handleBranchChange = () => setBranchIdState(getCurrentBranchId())
+    window.addEventListener('branch:changed', handleBranchChange)
+    return () => window.removeEventListener('branch:changed', handleBranchChange)
+  }, [])
+
+  useEffect(() => { setBranchIdState(getCurrentBranchId()) }, [location.pathname])
+
+  // Load user
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => { 
+      const u = await getUser()
+      if (cancelled) return
+      if (!u) { navigate('/login', { replace: true }); return }
+      setUser(u)
+      // Set user branches from login data
+      if (u.branches && u.branches.length > 0) {
+        setUserBranches(u.branches.map(b => ({
+          id: String(b.id),
+          nama: b.name || b.nama,
+          code: b.code,
+          isDefault: b.is_default || b.isDefault
+        })))
+      }
+    }
+    load()
+    const onChange = () => load()
+    window.addEventListener('auth:changed', onChange)
+    return () => { cancelled = true; window.removeEventListener('auth:changed', onChange) }
+  }, [navigate])
+
+  useEffect(() => { document.title = `${title} · Medicore Clinic` }, [title])
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+
+  const toggleGroup = (groupName) => { setOpenGroups((prev) => ({ ...prev, [groupName]: !prev[groupName] })) }
+  const [openGroups, setOpenGroups] = useState(() => { const initial = {}; MENU.forEach((g) => { if (g.icon) initial[g.group] = groupContainsPath(g, location.pathname) }); return initial })
+  useEffect(() => { setOpenGroups((prev) => { const next = { ...prev }; MENU.forEach((g) => { if (g.icon && groupContainsPath(g, location.pathname)) next[g.group] = true }); return next }) }, [location.pathname])
+
+  const confirmLogout = async () => { setLoggingOut(true); try { await logout() } finally { setLoggingOut(false); setLogoutOpen(false); navigate('/login', { replace: true }) } }
+  const handleThemeToggle = () => { toggleTheme(); setIsDark(document.documentElement.classList.contains('dark')) }
+
+  // Filter branches based on user access
+  const accessibleBranches = userBranches.length > 0 
+    ? allBranches.filter(b => userBranches.some(ub => ub.id === b.id))
+    : allBranches
+
+  // Debug
+  useEffect(() => {
+    console.log('[AppShell Debug]', { 
+      user: user?.name, 
+      userBranches: userBranches.length, 
+      allBranches: allBranches.length,
+      accessibleBranches: accessibleBranches.length,
+      branchId
+    })
+  }, [user, userBranches, allBranches, accessibleBranches, branchId])
+
+  return (
+    <div className="flex min-h-screen bg-[var(--bg-secondary)]">
+      {mobileOpen && (<div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />)}
+      
+      {/* Sidebar */}
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-[var(--bg-primary)] border-r border-[var(--border-primary)] transition-all duration-300 lg:sticky lg:top-0 overflow-visible ${collapsed ? 'w-16' : 'w-60'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className={`flex h-14 shrink-0 items-center border-b border-[var(--border-primary)] px-4 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+          {!collapsed && <BrandLogo showTagline={false} />}
+          <button 
+            type="button" 
+            onClick={() => setCollapsed(!collapsed)} 
+            className="grid h-8 w-8 place-items-center text-[var(--text-muted)] hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
+          >
+            {collapsed ? (
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
+            ) : (
+              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+            )}
+          </button>
+        </div>
+        
+        <nav className={`flex-1 py-3 px-2 ${collapsed ? 'overflow-visible' : 'overflow-y-auto'}`}>
+          {MENU.map((g) => (
+            <NavGroup key={g.group} group={g} open={openGroups[g.group]} onToggle={() => toggleGroup(g.group)} pathname={location.pathname} collapsed={collapsed} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown} />
+          ))}
+        </nav>
+        
+        <div className="shrink-0 border-t border-[var(--border-primary)] p-2">
+          <button type="button" onClick={requestLogout} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors ${collapsed ? 'justify-center' : ''}`}>
+            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5M21 12H9" /></svg>
+            {!collapsed && <span>Keluar</span>}
+          </button>
+        </div>
+      </aside>
+      
+      {/* Main */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-30 bg-gradient-to-r from-[#1b4332] via-[#2d6a4f] to-[#1b4332] shadow-lg">
+          <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
+            <button type="button" onClick={() => setMobileOpen(true)} className="grid h-9 w-9 place-items-center text-white/80 hover:bg-white/10 rounded-md lg:hidden">
+              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+            <div className="min-w-0 flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center lg:hidden">
+                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="2.5" y="3.5" width="19" height="12" rx="1" fill="none" stroke="white" />
+                  <rect x="4" y="5" width="6" height="2.5" rx="0.5" fill="#b7e4c7" stroke="none" />
+                  <path d="M9 19h6M12 15.5V19" fill="none" stroke="white" />
+                </svg>
+              </div>
+              <h1 className="truncate text-base font-semibold text-white">{title}</h1>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              {/* Branch Selector Dropdown */}
+              {accessibleBranches.length > 0 && (
+                <div className="relative">
+                  <button 
+                    type="button"
+                    onClick={() => setShowBranchDropdown(!showBranchDropdown)}
+                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${branchId ? 'text-[#95d5b2] hover:bg-white/10' : 'text-white/60 hover:bg-white/10'}`}
+                    title="Pilih Branch"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 21h18M5 21V7l8-4 8 4v14M8 21V12a4 4 0 014-4v0a4 4 0 014 4v9"/>
+                    </svg>
+                    {accessibleBranches.find(b => b.id === branchId) && (
+                      <span className="hidden sm:block text-xs max-w-[80px] truncate">
+                        {accessibleBranches.find(b => b.id === branchId)?.nama || 'Branch'}
+                      </span>
+                    )}
+                  </button>
+                  {showBranchDropdown && (
+                    <div 
+                      className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5 z-[99999]"
+                      onMouseLeave={() => setShowBranchDropdown(false)}
+                    >
+                      <div className="px-3 py-1.5 border-b border-[var(--border-primary)]">
+                        <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Pilih Branch</span>
+                      </div>
+                      {accessibleBranches.map(b => {
+                        const isActive = b.id === branchId
+                        return (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentBranch(b.id)
+                              setBranchIdState(b.id)
+                              setShowBranchDropdown(false)
+                            }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                              isActive 
+                                ? 'bg-[var(--bg-hover)] text-[var(--brand-primary)] font-medium' 
+                                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill={isActive ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                              <path d="M22 4L12 14.01l-3-3"/>
+                            </svg>
+                            <span className="truncate flex-1 text-left">{b.nama}</span>
+                            <span className="text-[10px] text-[var(--text-muted)]">{b.code}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+              <button 
+                type="button" 
+                className={`p-2 rounded-lg transition-all ${serverStatus === 'online' ? 'text-emerald-300 hover:bg-white/10' : serverStatus === 'offline' ? 'text-red-300 hover:bg-white/10' : 'text-white/60 hover:bg-white/10'}`}
+                title={`Server: ${serverStatus}`}
+                onClick={checkServerConnection}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M2 16h.01M6 16h.01M10 16h.01M14 16h.01M18 16h.01" strokeLinecap="round" />
+                  <path d="M2 12h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01" strokeLinecap="round" />
+                  <path d="M2 8h.01M6 8h.01M10 8h.01" strokeLinecap="round" />
+                  {serverStatus === 'online' && <circle cx="18" cy="8" r="2.5" fill="currentColor" />}
+                  {serverStatus === 'offline' && <circle cx="18" cy="8" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" />}
+                  {serverStatus === 'checking' && <circle cx="18" cy="8" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />}
+                </svg>
+              </button>
+              <button type="button" onClick={handleThemeToggle} className="p-2 rounded-lg text-white/80 hover:bg-white/10">
+                {isDark ? (
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" /></svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
+                )}
+              </button>
+              <AccountMenu user={user} onLogout={requestLogout} />
+            </div>
+          </div>
+        </header>
+        
+        <main className="flex-1 p-4 sm:p-6 pb-16">{children}</main>
+        
+        <footer className="fixed bottom-0 left-0 right-0 z-20 border-t border-[var(--border-primary)] bg-[var(--bg-primary)] px-4 py-2.5 text-xs text-[var(--text-muted)] text-center lg:left-60">
+          © {new Date().getFullYear()} Medicore Clinic. All rights reserved.
+        </footer>
+      </div>
+      
+      <ConfirmDialog open={logoutOpen} title="Keluar dari aplikasi?" message="Anda akan keluar dari sesi saat ini." confirmLabel={loggingOut ? 'Keluar…' : 'Ya, keluar'} danger onConfirm={confirmLogout} onCancel={() => !loggingOut && setLogoutOpen(false)} />
+    </div>
+  )
+}
+
 function NavGroup({ group, open, onToggle, pathname, collapsed, activeDropdown, setActiveDropdown }) {
+  const [showDropdown, setShowDropdown] = useState(false)
   const isActive = groupContainsPath(group, pathname)
   
   if (!group.icon) {
@@ -71,25 +340,25 @@ function NavGroup({ group, open, onToggle, pathname, collapsed, activeDropdown, 
   }
 
   if (collapsed) {
-    const isOpen = activeDropdown === group.group
     return (
       <div 
         className="relative"
-        onMouseEnter={() => setActiveDropdown(group.group)}
+        onMouseEnter={() => setShowDropdown(true)}
+        onMouseLeave={() => setShowDropdown(false)}
       >
         <button 
           type="button" 
           className={`w-full flex items-center justify-center p-2.5 rounded-lg transition-colors ${isActive ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
           title={group.group}
-          onClick={() => setActiveDropdown(isOpen ? null : group.group)}
+          onClick={() => setShowDropdown(!showDropdown)}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d={group.icon} /></svg>
         </button>
-        {isOpen && (
+        {showDropdown && (
           <div 
-            style={{ zIndex: 99999 }}
-            className="absolute left-full top-0 ml-2 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-large)] py-2"
-            onMouseLeave={() => setActiveDropdown(null)}
+            className="absolute left-full top-0 ml-2 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-large)] py-2 z-[99999]"
+            onMouseEnter={() => setShowDropdown(true)}
+            onMouseLeave={() => setShowDropdown(false)}
           >
             <div className="px-3 py-2 text-[11px] font-bold text-[var(--brand-primary)] uppercase tracking-wider border-b border-[var(--border-primary)]">{group.group}</div>
             {group.items.map((item) => (
@@ -98,7 +367,7 @@ function NavGroup({ group, open, onToggle, pathname, collapsed, activeDropdown, 
                 to={item.to} 
                 end={item.end} 
                 className={({ isActive }) => `flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${isActive ? 'bg-[var(--bg-hover)] text-[var(--brand-primary)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
-                onClick={() => setActiveDropdown(null)}
+                onClick={() => setShowDropdown(false)}
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.75"><path d={item.icon} /></svg>
                 <span className="truncate">{item.label}</span>
@@ -174,268 +443,6 @@ function AccountMenu({ user, onLogout }) {
           </button>
         </div>
       )}
-    </div>
-  )
-}
-
-export default function AppShell({ children }) {
-  const location = useLocation()
-  const navigate = useNavigate()
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const title = PAGE_TITLES[location.pathname] || 'Medicore Clinic'
-  
-  // Branch state - must be before other hooks that use it
-  const allBranches = getBranches()
-  const [user, setUser] = useState(null)
-  const [userBranches, setUserBranchesState] = useState([])
-  const [branchId, setBranchIdState] = useState(() => getCurrentBranchId())
-  const [accessibleBranches, setAccessibleBranches] = useState(allBranches)
-  const [showBranchSelector, setShowBranchSelector] = useState(allBranches.length > 1)
-  
-  // Listen for branch changes from other components
-  useEffect(() => {
-    const handleBranchChange = () => setBranchIdState(getCurrentBranchId())
-    window.addEventListener('branch:changed', handleBranchChange)
-    return () => window.removeEventListener('branch:changed', handleBranchChange)
-  }, [])
-  const [serverStatus, setServerStatus] = useState('checking')
-  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
-  const pingIntervalRef = useRef(null)
-  
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('medicore_sidebar_collapsed') === 'true' } catch { return false }
-  })
-  
-  useEffect(() => {
-    try { localStorage.setItem('medicore_sidebar_collapsed', String(collapsed)) } catch {}
-  }, [collapsed])
-  
-  const checkServerConnection = async () => {
-    const result = await pingServer()
-    setServerStatus(result.online ? 'online' : 'offline')
-  }
-  
-  useEffect(() => {
-    checkServerConnection()
-    pingIntervalRef.current = setInterval(checkServerConnection, 30000)
-    return () => { if (pingIntervalRef.current) clearInterval(pingIntervalRef.current) }
-  }, [])
-  
-  useEffect(() => { setBranchIdState(getCurrentBranchId()) }, [location.pathname])
-  
-  useEffect(() => {
-    let cancelled = false
-    const load = async () => { 
-      const u = await getUser()
-      if (cancelled) return
-      if (!u) { navigate('/login', { replace: true }); return }
-      setUser(u)
-      const branches = u.branches && u.branches.length > 0 ? u.branches : getBranches()
-      setUserBranchesState(branches)
-    }
-    load()
-    const onChange = () => load()
-    window.addEventListener('auth:changed', onChange)
-    return () => { cancelled = true; window.removeEventListener('auth:changed', onChange) }
-  }, [navigate])
-  
-  useEffect(() => { document.title = `${title} · Medicore Clinic` }, [title])
-  useEffect(() => { setMobileOpen(false) }, [location.pathname])
-  
-  const toggleGroup = (groupName) => { setOpenGroups((prev) => ({ ...prev, [groupName]: !prev[groupName] })) }
-  const [openGroups, setOpenGroups] = useState(() => { const initial = {}; MENU.forEach((g) => { if (g.icon) initial[g.group] = groupContainsPath(g, location.pathname) }); return initial })
-  useEffect(() => { setOpenGroups((prev) => { const next = { ...prev }; MENU.forEach((g) => { if (g.icon && groupContainsPath(g, location.pathname)) next[g.group] = true }); return next }) }, [location.pathname])
-  
-  const [activeDropdown, setActiveDropdown] = useState(null)
-  const [showBranchDropdown, setShowBranchDropdown] = useState(false)
-  
-  const [logoutOpen, setLogoutOpen] = useState(false)
-  const requestLogout = () => setLogoutOpen(true)
-  const [loggingOut, setLoggingOut] = useState(false)
-  const confirmLogout = async () => { setLoggingOut(true); try { await logout() } finally { setLoggingOut(false); setLogoutOpen(false); navigate('/login', { replace: true }) } }
-  const handleThemeToggle = () => { toggleTheme(); setIsDark(document.documentElement.classList.contains('dark')) }
-
-  // Filter branches based on user access
-  useEffect(() => {
-    console.log('[Branch Filter] user:', user)
-    console.log('[Branch Filter] user.branches:', user?.branches)
-    console.log('[Branch Filter] userBranches:', userBranches)
-    console.log('[Branch Filter] allBranches:', allBranches)
-    
-    if (user && user.branches && user.branches.length > 0) {
-      const userBranchIds = user.branches.map(b => String(b.id))
-      const filtered = allBranches.filter(b => userBranchIds.includes(String(b.id)))
-      console.log('[Branch Filter] filtered from user.branches:', filtered)
-      setAccessibleBranches(filtered)
-      setShowBranchSelector(filtered.length > 1)
-    } else if (userBranches && userBranches.length > 0) {
-      const userBranchIds = userBranches.map(b => String(b.id))
-      const filtered = allBranches.filter(b => userBranchIds.includes(String(b.id)))
-      console.log('[Branch Filter] filtered from userBranches:', filtered)
-      setAccessibleBranches(filtered)
-      setShowBranchSelector(filtered.length > 1)
-    } else {
-      console.log('[Branch Filter] using allBranches')
-      setAccessibleBranches(allBranches)
-      setShowBranchSelector(allBranches.length > 1)
-    }
-  }, [user, userBranches, allBranches])
-
-  // Debug: log branch state
-  useEffect(() => {
-    console.log('[AppShell Debug]', { 
-      user: user?.name, 
-      userBranches: userBranches.length, 
-      accessibleBranches: accessibleBranches.length, 
-      showBranchSelector, 
-      allBranches: allBranches.length,
-      showBranchDropdown,
-      branchId
-    })
-  }, [user, userBranches, accessibleBranches, showBranchSelector, allBranches, showBranchDropdown, branchId])
-
-  return (
-    <div className="flex min-h-screen bg-[var(--bg-secondary)]">
-      {mobileOpen && (<div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />)}
-      
-      {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-[var(--bg-primary)] border-r border-[var(--border-primary)] transition-all duration-300 lg:sticky lg:top-0 overflow-visible ${collapsed ? 'w-16' : 'w-60'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className={`flex h-14 shrink-0 items-center border-b border-[var(--border-primary)] px-4 ${collapsed ? 'justify-center' : 'justify-between'}`}>
-          {!collapsed && <BrandLogo showTagline={false} />}
-          <button 
-            type="button" 
-            onClick={() => setCollapsed(!collapsed)} 
-            className="grid h-8 w-8 place-items-center text-[var(--text-muted)] hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
-          >
-            {collapsed ? (
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
-            ) : (
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-            )}
-          </button>
-        </div>
-        
-        <nav className={`flex-1 py-3 px-2 ${collapsed ? 'overflow-visible' : 'overflow-y-auto'}`}>
-          {MENU.map((g) => (
-            <NavGroup key={g.group} group={g} open={openGroups[g.group]} onToggle={() => toggleGroup(g.group)} pathname={location.pathname} collapsed={collapsed} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown} />
-          ))}
-        </nav>
-        
-        <div className="shrink-0 border-t border-[var(--border-primary)] p-2">
-          <button type="button" onClick={requestLogout} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors ${collapsed ? 'justify-center' : ''}`}>
-            <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5M21 12H9" /></svg>
-            {!collapsed && <span>Keluar</span>}
-          </button>
-        </div>
-      </aside>
-      
-      {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 bg-gradient-to-r from-[#1b4332] via-[#2d6a4f] to-[#1b4332] shadow-lg">
-          <div className="flex h-14 items-center gap-3 px-4 sm:px-6">
-            <button type="button" onClick={() => setMobileOpen(true)} className="grid h-9 w-9 place-items-center text-white/80 hover:bg-white/10 rounded-md lg:hidden">
-              <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M4 6h16M4 12h16M4 18h16" /></svg>
-            </button>
-            <div className="min-w-0 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-white/15 backdrop-blur-sm flex items-center justify-center lg:hidden">
-                <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2">
-                  <rect x="2.5" y="3.5" width="19" height="12" rx="1" fill="none" stroke="white" />
-                  <rect x="4" y="5" width="6" height="2.5" rx="0.5" fill="#b7e4c7" stroke="none" />
-                  <path d="M9 19h6M12 15.5V19" fill="none" stroke="white" />
-                </svg>
-              </div>
-              <h1 className="truncate text-base font-semibold text-white">{title}</h1>
-            </div>
-            <div className="ml-auto flex items-center gap-2">
-              {/* Branch Selector Dropdown */}
-              <div className="relative">
-                <button 
-                  type="button"
-                  onClick={() => setShowBranchDropdown(prev => !prev)}
-                  className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${branchId ? 'text-[#95d5b2] hover:bg-white/10' : 'text-white/60 hover:bg-white/10'}`}
-                  title="Pilih Branch"
-                >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M3 21h18M5 21V7l8-4 8 4v14M8 21V12a4 4 0 014-4v0a4 4 0 014 4v9"/>
-                  </svg>
-                  {accessibleBranches.find(b => b.id === branchId) && (
-                    <span className="hidden sm:block text-xs max-w-[80px] truncate">
-                      {accessibleBranches.find(b => b.id === branchId)?.nama || 'Branch'}
-                    </span>
-                  )}
-                </button>
-                {showBranchDropdown && accessibleBranches.length > 0 && (
-                  <div 
-                    className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5 z-[99999]"
-                    onMouseLeave={() => setShowBranchDropdown(false)}
-                  >
-                    <div className="px-3 py-1.5 border-b border-[var(--border-primary)]">
-                      <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Pilih Branch</span>
-                    </div>
-                    {accessibleBranches.map(b => {
-                      const isActive = b.id === branchId
-                      return (
-                        <button
-                          key={b.id}
-                          type="button"
-                          onClick={() => {
-                            setCurrentBranch(b.id)
-                            setBranchIdState(b.id)
-                            setShowBranchDropdown(false)
-                          }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-                            isActive 
-                              ? 'bg-[var(--bg-hover)] text-[var(--brand-primary)] font-medium' 
-                              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
-                          }`}
-                        >
-                          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill={isActive ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <path d="M22 4L12 14.01l-3-3"/>
-                          </svg>
-                          <span className="truncate flex-1 text-left">{b.nama}</span>
-                          <span className="text-[10px] text-[var(--text-muted)]">{b.code}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-              <button 
-                type="button" 
-                className={`p-2 rounded-lg transition-all ${serverStatus === 'online' ? 'text-emerald-300 hover:bg-white/10' : serverStatus === 'offline' ? 'text-red-300 hover:bg-white/10' : 'text-white/60 hover:bg-white/10'}`}
-                title={`Server: ${serverStatus}`}
-                onClick={checkServerConnection}
-              >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M2 16h.01M6 16h.01M10 16h.01M14 16h.01M18 16h.01" strokeLinecap="round" />
-                  <path d="M2 12h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01" strokeLinecap="round" />
-                  <path d="M2 8h.01M6 8h.01M10 8h.01" strokeLinecap="round" />
-                  {serverStatus === 'online' && <circle cx="18" cy="8" r="2.5" fill="currentColor" />}
-                  {serverStatus === 'offline' && <circle cx="18" cy="8" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" />}
-                  {serverStatus === 'checking' && <circle cx="18" cy="8" r="2.5" fill="none" stroke="currentColor" strokeWidth="2" strokeDasharray="2 2" />}
-                </svg>
-              </button>
-              <button type="button" onClick={handleThemeToggle} className="p-2 rounded-lg text-white/80 hover:bg-white/10">
-                {isDark ? (
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2" /></svg>
-                ) : (
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" /></svg>
-                )}
-              </button>
-              <AccountMenu user={user} onLogout={requestLogout} />
-            </div>
-          </div>
-        </header>
-        
-        <main className="flex-1 p-4 sm:p-6 pb-16">{children}</main>
-        
-        <footer className="fixed bottom-0 left-0 right-0 z-20 border-t border-[var(--border-primary)] bg-[var(--bg-primary)] px-4 py-2.5 text-xs text-[var(--text-muted)] text-center lg:left-60">
-          © {new Date().getFullYear()} Medicore Clinic. All rights reserved.
-        </footer>
-      </div>
-      
-      <ConfirmDialog open={logoutOpen} title="Keluar dari aplikasi?" message="Anda akan keluar dari sesi saat ini." confirmLabel={loggingOut ? 'Keluar…' : 'Ya, keluar'} danger onConfirm={confirmLogout} onCancel={() => !loggingOut && setLogoutOpen(false)} />
     </div>
   )
 }
