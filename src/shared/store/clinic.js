@@ -25,6 +25,7 @@ export function getCurrentBranchId() {
 
 export function setCurrentBranch(id) {
   localStorage.setItem(BRANCH_KEY, id)
+  window.dispatchEvent(new Event('branch:changed'))
 }
 
 // User branches management

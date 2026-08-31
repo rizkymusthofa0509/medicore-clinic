@@ -186,6 +186,13 @@ export default function AppShell({ children }) {
   const [user, setUser] = useState(null)
   const [userBranches, setUserBranchesState] = useState([])
   const [branchId, setBranchIdState] = useState(() => getCurrentBranchId())
+
+  // Listen for branch changes from other components
+  useEffect(() => {
+    const handleBranchChange = () => setBranchIdState(getCurrentBranchId())
+    window.addEventListener('branch:changed', handleBranchChange)
+    return () => window.removeEventListener('branch:changed', handleBranchChange)
+  }, [])
   const [serverStatus, setServerStatus] = useState('checking')
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
   const pingIntervalRef = useRef(null)
