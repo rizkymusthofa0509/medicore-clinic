@@ -1,25 +1,22 @@
-import { useState, useEffect, useMemo, useRef, createPortal } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 
 // ==================== ACTION DROPDOWN (Vertical Dots) ====================
 export function ActionDropdown({ actions, row }) {
   const [open, setOpen] = useState(false)
-  const btnRef = useRef(null)
+  const ref = useRef(null)
 
   useEffect(() => {
     const onClick = (e) => {
-      if (btnRef.current && !btnRef.current.parentElement?.contains(e.target)) setOpen(false)
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
     }
-    if (open) document.addEventListener('mousedown', onClick)
+    document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
-  }, [open])
-
-  const rect = btnRef.current?.getBoundingClientRect()
+  }, [])
 
   return (
-    <span className="relative">
+    <div className="relative" ref={ref} style={{ zIndex: open ? 999999 : 'auto' }}>
       <button
         type="button"
-        ref={btnRef}
         onClick={(e) => { e.stopPropagation(); setOpen(!open) }}
         className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
         title="Aksi"
@@ -30,15 +27,10 @@ export function ActionDropdown({ actions, row }) {
           <circle cx="12" cy="19" r="2" />
         </svg>
       </button>
-      {open && rect && createPortal(
+      {open && (
         <div
-          style={{
-            position: 'fixed',
-            zIndex: 999999,
-            top: rect.bottom + 4,
-            left: rect.right - 192,
-          }}
-          className="w-48 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5"
+          className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5"
+          style={{ zIndex: 999999 }}
           onClick={(e) => e.stopPropagation()}
         >
           {actions.map((action, idx) => (
@@ -60,10 +52,9 @@ export function ActionDropdown({ actions, row }) {
               <span className="truncate">{action.label}</span>
             </button>
           ))}
-        </div>,
-        document.body
+        </div>
       )}
-    </span>
+    </div>
   )
 }
 
@@ -114,14 +105,12 @@ export function TabelMaster({
 
   const cellPadding = compact ? 'px-3 py-2' : 'px-4 py-3'
 
-  // Tambah kolom actions jika ada
   const allColumns = actions 
     ? [...columns, { key: '__actions__', label: 'Aksi', sortable: false, align: 'right' }]
     : columns
 
   return (
     <div className="space-y-3">
-      {/* Search */}
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-xs">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -141,9 +130,8 @@ export function TabelMaster({
         </span>
       </div>
 
-      {/* Table */}
-      <div className="card overflow-x-auto">
-        <table className="w-full">
+      <div className="card" style={{ overflow: 'visible' }}>
+        <table className="w-full" style={{ position: 'relative' }}>
           <thead>
             <tr className="border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
               <th className={`${cellPadding} w-12 text-left`}>
@@ -199,7 +187,7 @@ export function TabelMaster({
                   {allColumns.map(col => {
                     if (col.key === '__actions__') {
                       return (
-                        <td key={col.key} className={`${cellPadding} text-right`}>
+                        <td key={col.key} className={`${cellPadding} text-right`} style={{ position: 'relative', overflow: 'visible' }}>
                           {actions && <ActionDropdown actions={actions} row={row} />}
                         </td>
                       )
