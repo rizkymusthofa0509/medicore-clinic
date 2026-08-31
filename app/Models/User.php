@@ -30,43 +30,35 @@ class User extends Authenticatable
         'is_active' => 'boolean',
     ];
 
-    /**
-     * Check if user is admin
-     */
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
 
-    /**
-     * Check if user is active
-     */
     public function isActive(): bool
     {
         return $this->is_active === true;
     }
 
-    /**
-     * Scope for active users
-     */
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
     }
 
-    /**
-     * Scope for admin users
-     */
     public function scopeAdmin($query)
     {
         return $query->where('role', 'admin');
     }
 
-    /**
-     * Get the branch for this user
-     */
     public function branch()
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function branches()
+    {
+        return $this->belongsToMany(Branch::class, 'user_branches', 'user_id', 'branch_id')
+                    ->withPivot('is_default')
+                    ->withTimestamps();
     }
 }
