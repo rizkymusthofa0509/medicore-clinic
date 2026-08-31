@@ -49,8 +49,7 @@ function groupContainsPath(group, pathname) {
   return group.items.some((i) => i.to === pathname || (i.end && pathname === '/'))
 }
 
-function NavGroup({ group, open, onToggle, pathname, collapsed }) {
-  const [showDropdown, setShowDropdown] = useState(false)
+function NavGroup({ group, open, onToggle, pathname, collapsed, activeDropdown, setActiveDropdown }) {
   const isActive = groupContainsPath(group, pathname)
   
   if (!group.icon) {
@@ -72,24 +71,25 @@ function NavGroup({ group, open, onToggle, pathname, collapsed }) {
   }
 
   if (collapsed) {
+    const isOpen = activeDropdown === group.group
     return (
       <div 
         className="relative"
-        onMouseEnter={() => setShowDropdown(true)}
+        onMouseEnter={() => setActiveDropdown(group.group)}
       >
         <button 
           type="button" 
           className={`w-full flex items-center justify-center p-2.5 rounded-lg transition-colors ${isActive ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
           title={group.group}
-          onClick={() => setShowDropdown(!showDropdown)}
+          onClick={() => setActiveDropdown(isOpen ? null : group.group)}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d={group.icon} /></svg>
         </button>
-        {showDropdown && (
+        {isOpen && (
           <div 
             style={{ zIndex: 99999 }}
             className="absolute left-full top-0 ml-2 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-large)] py-2"
-            onMouseLeave={() => setShowDropdown(false)}
+            onMouseLeave={() => setActiveDropdown(null)}
           >
             <div className="px-3 py-2 text-[11px] font-bold text-[var(--brand-primary)] uppercase tracking-wider border-b border-[var(--border-primary)]">{group.group}</div>
             {group.items.map((item) => (
@@ -98,7 +98,7 @@ function NavGroup({ group, open, onToggle, pathname, collapsed }) {
                 to={item.to} 
                 end={item.end} 
                 className={({ isActive }) => `flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${isActive ? 'bg-[var(--bg-hover)] text-[var(--brand-primary)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
-                onClick={() => setShowDropdown(false)}
+                onClick={() => setActiveDropdown(null)}
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.75"><path d={item.icon} /></svg>
                 <span className="truncate">{item.label}</span>
@@ -226,6 +226,8 @@ export default function AppShell({ children }) {
   const [openGroups, setOpenGroups] = useState(() => { const initial = {}; MENU.forEach((g) => { if (g.icon) initial[g.group] = groupContainsPath(g, location.pathname) }); return initial })
   useEffect(() => { setOpenGroups((prev) => { const next = { ...prev }; MENU.forEach((g) => { if (g.icon && groupContainsPath(g, location.pathname)) next[g.group] = true }); return next }) }, [location.pathname])
   
+  const [activeDropdown, setActiveDropdown] = useState(null)
+  
   const [logoutOpen, setLogoutOpen] = useState(false)
   const requestLogout = () => setLogoutOpen(true)
   const [loggingOut, setLoggingOut] = useState(false)
@@ -255,7 +257,7 @@ export default function AppShell({ children }) {
         
         <nav className={`flex-1 py-3 px-2 ${collapsed ? 'overflow-visible' : 'overflow-y-auto'}`}>
           {MENU.map((g) => (
-            <NavGroup key={g.group} group={g} open={openGroups[g.group]} onToggle={() => toggleGroup(g.group)} pathname={location.pathname} collapsed={collapsed} />
+            <NavGroup key={g.group} group={g} open={openGroups[g.group]} onToggle={() => toggleGroup(g.group)} pathname={location.pathname} collapsed={collapsed} activeDropdown={activeDropdown} setActiveDropdown={setActiveDropdown} />
           ))}
         </nav>
         
