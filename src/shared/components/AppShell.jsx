@@ -340,10 +340,16 @@ export default function AppShell({ children }) {
             </div>
             <div className="ml-auto flex items-center gap-2">
               {/* Branch Selector Dropdown */}
-              <div className="relative">
+              <div className="relative" style={{ border: showBranchDropdown ? '2px solid red' : 'none' }}>
                 <button 
                   type="button"
-                  onClick={() => setShowBranchDropdown(!showBranchDropdown)}
+                  onClick={(e) => { 
+                    e.stopPropagation()
+                    e.preventDefault()
+                    console.log('[Branch Click] toggling, current:', showBranchDropdown)
+                    setShowBranchDropdown(!showBranchDropdown)
+                    console.log('[Branch Click] after set:', !showBranchDropdown)
+                  }}
                   className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${branchId ? 'text-[#95d5b2] hover:bg-white/10' : 'text-white/60 hover:bg-white/10'}`}
                   title="Pilih Branch"
                 >
@@ -358,11 +364,15 @@ export default function AppShell({ children }) {
                 </button>
                 {showBranchDropdown && accessibleBranches.length > 0 && (
                   <div 
-                    className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5 z-[99999]"
+                    className="absolute right-0 top-full mt-1 w-56 rounded-xl border-2 border-red-500 bg-[var(--bg-primary)] shadow-2xl py-1.5"
+                    style={{ zIndex: 99999 }}
                     onMouseLeave={() => setShowBranchDropdown(false)}
                   >
+                    <div className="px-3 py-1.5 border-b border-[var(--border-primary)] bg-yellow-100">
+                      <span className="text-xs font-semibold text-red-500">DEBUG: Dropdown Active</span>
+                    </div>
                     <div className="px-3 py-1.5 border-b border-[var(--border-primary)]">
-                      <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Pilih Branch</span>
+                      <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Pilih Branch ({accessibleBranches.length})</span>
                     </div>
                     {accessibleBranches.map(b => {
                       const isActive = b.id === branchId
