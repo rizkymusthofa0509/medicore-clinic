@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getToken } from './auth.js';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8001',
@@ -10,7 +11,7 @@ const api = axios.create({
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('medicore_token');
+  const token = getToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -22,8 +23,7 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('medicore_token');
-      localStorage.removeItem('medicore_user');
+      localStorage.clear();
       window.location.href = '/login';
     }
     return Promise.reject(error);
