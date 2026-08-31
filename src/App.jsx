@@ -8,6 +8,7 @@ import DashboardPage from './features/dashboard/pages/DashboardPage.jsx'
 import PendaftaranPage from './features/front-office/pages/PendaftaranPage.jsx'
 import PasienPage from './features/front-office/pages/PasienPage.jsx'
 import DataMasterPage from './features/master/pages/DataMasterPage.jsx'
+import { setCurrentBranch } from './shared/store/clinic.js'
 
 function ComingSoon() {
   const location = useLocation()
@@ -109,7 +110,7 @@ export default function App() {
   useEffect(() => {
     const stored = localStorage.getItem('medicore_branch')
     if (stored) {
-      import('./shared/store/clinic.js').then(mod => mod.setCurrentBranch(stored))
+      setCurrentBranch(stored)
     }
   }, [])
 
