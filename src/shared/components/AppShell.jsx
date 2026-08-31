@@ -192,7 +192,8 @@ export default function AppShell({ children }) {
   const title = PAGE_TITLES[location.pathname] || 'Medicore Clinic'
   const [user, setUser] = useState(null)
   const [branchId, setBranchIdState] = useState(() => getCurrentBranchId())
-  const [serverStatus, setServerStatus] = useState('checking') // 'online' | 'offline' | 'checking'
+  const [serverStatus, setServerStatus] = useState('checking')
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
   const pingIntervalRef = useRef(null)
   
   // Sidebar collapsed state - persisted to localStorage
@@ -237,7 +238,7 @@ export default function AppShell({ children }) {
   const requestLogout = () => setLogoutOpen(true)
   const [loggingOut, setLoggingOut] = useState(false)
   const confirmLogout = async () => { setLoggingOut(true); try { await logout() } finally { setLoggingOut(false); setLogoutOpen(false); navigate('/login', { replace: true }) } }
-  const handleThemeToggle = () => { toggleTheme(); window.dispatchEvent(new Event('theme-changed')) }
+  const handleThemeToggle = () => { toggleTheme(); setIsDark(document.documentElement.classList.contains('dark')); window.dispatchEvent(new Event('theme-changed')) }
 
   const sidebarWidth = collapsed ? 'w-16' : 'w-64'
   const footerLeft = collapsed ? 'left-16' : 'left-64'
@@ -323,7 +324,7 @@ export default function AppShell({ children }) {
                 )}
               </button>
               
-              <AccountMenu onLogout={requestLogout} />
+              <AccountMenu user={user} onLogout={requestLogout} />
             </div>
           </div>
         </header>
