@@ -183,10 +183,15 @@ export default function AppShell({ children }) {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const title = PAGE_TITLES[location.pathname] || 'Medicore Clinic'
+  
+  // Branch state - must be before other hooks that use it
+  const allBranches = getBranches()
   const [user, setUser] = useState(null)
   const [userBranches, setUserBranchesState] = useState([])
   const [branchId, setBranchIdState] = useState(() => getCurrentBranchId())
-
+  const [accessibleBranches, setAccessibleBranches] = useState(allBranches)
+  const [showBranchSelector, setShowBranchSelector] = useState(allBranches.length > 1)
+  
   // Listen for branch changes from other components
   useEffect(() => {
     const handleBranchChange = () => setBranchIdState(getCurrentBranchId())
@@ -250,9 +255,22 @@ export default function AppShell({ children }) {
   const handleThemeToggle = () => { toggleTheme(); setIsDark(document.documentElement.classList.contains('dark')) }
 
   // Filter branches based on user access
-  const allBranches = getBranches()
-  const accessibleBranches = user ? getAccessibleBranches(allBranches) : allBranches
-  const showBranchSelector = accessibleBranches.length > 1
+  useEffect(() => {
+    if (user && user.branches) {
+      const userBranchIds = user.branches.map(b => b.id)
+      const filtered = allBranches.filter(b => userBranchIds.includes(b.id))
+      setAccessibleBranches(filtered)
+      setShowBranchSelector(filtered.length > 1)
+    } else if (userBranches && userBranches.length > 0) {
+      const userBranchIds = userBranches.map(b => b.id)
+      const filtered = allBranches.filter(b => userBranchIds.includes(b.id))
+      setAccessibleBranches(filtered)
+      setShowBranchSelector(filtered.length > 1)
+    } else {
+      setAccessibleBranches(allBranches)
+      setShowBranchSelector(allBranches.length > 1)
+    }
+  }, [user, userBranches, allBranches])
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-secondary)]">
