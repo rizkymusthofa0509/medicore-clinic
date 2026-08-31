@@ -21,6 +21,13 @@ export default function LoginPage() {
       const response = await login(email, password)
       const { token, user } = response.data
 
+      // Clear old user data first to ensure fresh data
+      localStorage.removeItem('medicore_user')
+      localStorage.removeItem('medicore_user_hash')
+      localStorage.removeItem('medicore_token')
+      localStorage.removeItem('medicore_token_hash')
+      localStorage.removeItem('medicore_user_branches')
+
       saveAuthData(token, user)
       setUserBranches(user.branches || [])
       window.dispatchEvent(new Event('auth:changed'))
