@@ -151,7 +151,7 @@ export default function AccountTab() {
               </div>
               <div>
                 <label className="label">Password {editing ? '(kosongkan jika tidak diubah)' : '*'}</label>
-                <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="input"={!editing} />
+                <input type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} className="input" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
