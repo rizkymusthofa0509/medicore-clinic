@@ -4,14 +4,14 @@
 // ============================================================
 
 const SALT_PREFIX = 'mc_'
-const STORAGE_HASH = 'medicore_integrity'
+const SALT_KEY = 'medicore_salt'
 
-// Generate/retrieve salt unik per browser
+// Generate/retrieve salt unik per browser (localStorage agar persist)
 function getSalt() {
-  let salt = sessionStorage.getItem('medicore_salt')
+  let salt = localStorage.getItem(SALT_KEY)
   if (!salt) {
     salt = SALT_PREFIX + Math.random().toString(36).slice(2, 12) + Date.now().toString(36)
-    sessionStorage.setItem('medicore_salt', salt)
+    localStorage.setItem(SALT_KEY, salt)
   }
   return salt
 }
@@ -24,7 +24,7 @@ function rotCipher(text, direction = 1) {
     .map((char) => {
       const code = char.charCodeAt(0)
       if (code >= 32 && code <= 126) {
-        const range = 95 // 126 - 32 + 1
+        const range = 95
         const shifted = ((code - 32 + direction * shift + range) % range) + 32
         return String.fromCharCode(shifted)
       }
@@ -52,7 +52,7 @@ export function decrypt(encoded) {
     const ciphered = atob(encoded)
     const salted = rotCipher(ciphered, -1)
     const [salt, ...rest] = salted.split(':')
-    if (salt !== getSalt()) return null // Salt tidak cocok
+    if (salt !== getSalt()) return null
     return JSON.parse(rest.join(':'))
   } catch {
     return null
@@ -75,7 +75,6 @@ export function secureStore(key, data) {
   if (!encrypted) return false
   try {
     localStorage.setItem(key, encrypted)
-    // Simpan integrity hash
     localStorage.setItem(`${key}_hash`, simpleHash(encrypted))
     return true
   } catch {
@@ -91,13 +90,23 @@ export function secureRetrieve(key) {
   // Cek integrity
   const storedHash = localStorage.getItem(`${key}_hash`)
   if (storedHash && storedHash !== simpleHash(encrypted)) {
-    // Data dimanipulasi — clear & return null
     localStorage.removeItem(key)
     localStorage.removeItem(`${key}_hash`)
     return null
   }
 
-  return decrypt(encrypted)
+  // Coba decrypt dengan salt saat ini
+  const decrypted = decrypt(encrypted)
+  if (decrypted) return decrypted
+
+  // Fallback: coba parse sebagai JSON plain (data lama)
+  try {
+    const parsed = JSON.parse(encrypted)
+    secureStore(key, parsed)
+    return parsed
+  } catch {
+    return null
+  }
 }
 
 // Hapus data terenkripsi
