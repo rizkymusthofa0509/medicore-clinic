@@ -1,18 +1,26 @@
 import { useEffect, useState } from 'react'
-import { getCurrentBranchId, getBranchById, getDashboardStats, getVisits } from '../../../shared/store/clinic.js'
+import { getCurrentBranchId, getBranchById, getDashboardStats } from '../../../shared/store/clinic.js'
 import { Card } from '../../../shared/components/ui.jsx'
 
 export default function DashboardPage() {
   const [branchId, setBranchId] = useState(() => getCurrentBranchId())
   const [stats, setStats] = useState({ totalKunjungan: 0, pending: 0, criticalObat: 0, revenue: 0, todayVisits: [] })
+  const [refreshKey, setRefreshKey] = useState(0)
 
+  // Load stats when branchId changes
   useEffect(() => {
+    console.log('[Dashboard] Loading stats for branch:', branchId)
     setStats(getDashboardStats(branchId))
-  }, [branchId])
+  }, [branchId, refreshKey])
 
   // Listen for branch changes from header
   useEffect(() => {
-    const handleBranchChange = () => setBranchId(getCurrentBranchId())
+    const handleBranchChange = () => {
+      const newBranchId = getCurrentBranchId()
+      console.log('[Dashboard] branch:changed event received, new branch:', newBranchId)
+      setBranchId(newBranchId)
+      setRefreshKey(prev => prev + 1)
+    }
     window.addEventListener('branch:changed', handleBranchChange)
     return () => window.removeEventListener('branch:changed', handleBranchChange)
   }, [])

@@ -24,7 +24,8 @@ export function getCurrentBranchId() {
 }
 
 export function setCurrentBranch(id) {
-  localStorage.setItem(BRANCH_KEY, id)
+  localStorage.setItem(BRANCH_KEY, String(id))
+  console.log('[Store] setCurrentBranch:', id, 'dispatched branch:changed')
   window.dispatchEvent(new Event('branch:changed'))
 }
 
