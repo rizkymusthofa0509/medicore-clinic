@@ -8,6 +8,7 @@ import DashboardPage from './features/dashboard/pages/DashboardPage.jsx'
 import PendaftaranPage from './features/front-office/pages/PendaftaranPage.jsx'
 import PasienPage from './features/front-office/pages/PasienPage.jsx'
 import DataMasterPage from './features/master/pages/DataMasterPage.jsx'
+import SettingPage from './features/setting/pages/SettingPage.jsx'
 import { setCurrentBranch } from './shared/store/clinic.js'
 
 function ComingSoon() {
@@ -167,7 +168,7 @@ export default function App() {
 
         {/* Database Pasien & Settings */}
         <Route path="/database-pasien" element={<Protected><AppShell><PasienPage /></AppShell></Protected>} />
-        <Route path="/setting" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
+        <Route path="/setting" element={<Protected><AppShell><SettingPage /></AppShell></Protected>} />
         <Route path="/tagihan" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
 
         {/* Fallback */}
