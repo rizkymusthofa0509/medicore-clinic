@@ -256,7 +256,7 @@ export default function AppShell({ children }) {
 
   // Filter branches based on user access
   useEffect(() => {
-    if (user && user.branches) {
+    if (user && user.branches && user.branches.length > 0) {
       const userBranchIds = user.branches.map(b => b.id)
       const filtered = allBranches.filter(b => userBranchIds.includes(b.id))
       setAccessibleBranches(filtered)
@@ -271,6 +271,11 @@ export default function AppShell({ children }) {
       setShowBranchSelector(allBranches.length > 1)
     }
   }, [user, userBranches, allBranches])
+
+  // Debug: log branch state
+  useEffect(() => {
+    console.log('[AppShell]', { user: user?.name, userBranches, accessibleBranches, showBranchSelector, allBranches })
+  }, [user, userBranches, accessibleBranches, showBranchSelector, allBranches])
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-secondary)]">
