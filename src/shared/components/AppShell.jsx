@@ -61,7 +61,7 @@ function NavGroup({ group, open, onToggle, pathname, collapsed }) {
             key={item.to} 
             to={item.to} 
             end={item.end} 
-            className={({ isActive }) => `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-[#2d6a4f] text-white' : 'text-[#334155] hover:bg-[#e8f5ed]'}`}
+            className={({ isActive }) => `flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
           >
             <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.75"><path d={item.icon} /></svg>
             {!collapsed && <span className="truncate">{item.label}</span>}
@@ -81,24 +81,24 @@ function NavGroup({ group, open, onToggle, pathname, collapsed }) {
       >
         <button 
           type="button" 
-          className={`w-full flex items-center justify-center p-2.5 rounded-lg transition-colors ${isActive ? 'bg-[#2d6a4f] text-white' : 'text-[#334155] hover:bg-[#e8f5ed]'}`}
+          className={`w-full flex items-center justify-center p-2.5 rounded-lg transition-colors ${isActive ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
           title={group.group}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d={group.icon} /></svg>
         </button>
         {showDropdown && (
           <div 
-            className="absolute left-full top-0 ml-1 w-52 rounded-xl border border-[#c8e6d6] bg-white shadow-xl py-2 z-[9999]"
+            className="absolute left-full top-0 ml-2 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-large)] py-2 z-[9999]"
             onMouseEnter={() => setShowDropdown(true)}
             onMouseLeave={() => setShowDropdown(false)}
           >
-            <div className="px-3 py-2 text-[10px] font-bold text-[#2d6a4f] uppercase tracking-wider border-b border-[#c8e6d6]">{group.group}</div>
+            <div className="px-3 py-2 text-[11px] font-bold text-[var(--brand-primary)] uppercase tracking-wider border-b border-[var(--border-primary)]">{group.group}</div>
             {group.items.map((item) => (
               <NavLink 
                 key={item.to} 
                 to={item.to} 
                 end={item.end} 
-                className={({ isActive }) => `flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${isActive ? 'bg-[#e8f5ed] text-[#1b4332] font-medium' : 'text-[#334155] hover:bg-[#f0f7f4]'}`}
+                className={({ isActive }) => `flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${isActive ? 'bg-[var(--bg-hover)] text-[var(--brand-primary)] font-medium' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
                 onClick={() => setShowDropdown(false)}
               >
                 <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.75"><path d={item.icon} /></svg>
@@ -116,20 +116,20 @@ function NavGroup({ group, open, onToggle, pathname, collapsed }) {
       <button 
         type="button" 
         onClick={onToggle} 
-        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-[#e8f5ed] text-[#1b4332]' : 'text-[#334155] hover:bg-[#f0f7f4]'}`}
+        className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? 'bg-[var(--bg-hover)] text-[var(--brand-primary)]' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
       >
         <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="1.75"><path d={group.icon} /></svg>
         <span className="truncate flex-1 text-left">{group.group}</span>
         <svg viewBox="0 0 24 24" className={`h-4 w-4 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 6 6 6-6 6" /></svg>
       </button>
       {open && (
-        <div className="ml-4 space-y-0.5 border-l-2 border-[#c8e6d6] pl-2">
+        <div className="ml-4 space-y-0.5 border-l-2 border-[var(--border-primary)] pl-2">
           {group.items.map((item) => (
             <NavLink 
               key={item.to} 
               to={item.to} 
               end={item.end} 
-              className={({ isActive }) => `flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-[#e8f5ed] text-[#1b4332] font-medium' : 'text-[#64748b] hover:bg-[#f0f7f4] hover:text-[#334155]'}`}
+              className={({ isActive }) => `flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm transition-colors ${isActive ? 'bg-[var(--bg-hover)] text-[var(--brand-primary)] font-medium' : 'text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-secondary)]'}`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-current opacity-40" />
               <span className="truncate">{item.label}</span>
@@ -162,14 +162,14 @@ function AccountMenu({ user, onLogout }) {
         <svg viewBox="0 0 24 24" className={`h-3.5 w-3.5 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6" /></svg>
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[#c8e6d6] bg-white shadow-xl p-1.5 z-50">
-          <div className="px-3 py-2 border-b border-[#c8e6d6] mb-1"><p className="text-sm font-semibold text-[#0f172a] truncate">{name}</p></div>
-          <button type="button" onClick={() => { setOpen(false); navigate('/setting') }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#334155] hover:bg-[#f0f7f4]">
+        <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-large)] p-1.5 z-50">
+          <div className="px-3 py-2 border-b border-[var(--border-primary)] mb-1"><p className="text-sm font-semibold text-[var(--text-primary)] truncate">{name}</p></div>
+          <button type="button" onClick={() => { setOpen(false); navigate('/setting') }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
             Profile
           </button>
-          <div className="my-1 border-t border-[#c8e6d6]" />
-          <button type="button" onClick={() => { setOpen(false); onLogout() }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#e76f51] hover:bg-red-50">
+          <div className="my-1 border-t border-[var(--border-primary)]" />
+          <button type="button" onClick={() => { setOpen(false); onLogout() }} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[var(--status-danger)] hover:bg-red-50 dark:hover:bg-red-900/20">
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5M21 12H9" /></svg>
             Logout
           </button>
@@ -234,17 +234,17 @@ export default function AppShell({ children }) {
   const handleThemeToggle = () => { toggleTheme(); setIsDark(document.documentElement.classList.contains('dark')) }
 
   return (
-    <div className="flex min-h-screen bg-[#f8faf9]">
+    <div className="flex min-h-screen bg-[var(--bg-secondary)]">
       {mobileOpen && (<div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />)}
       
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-white border-r border-[#c8e6d6] transition-all duration-300 lg:sticky lg:top-0 ${collapsed ? 'w-16' : 'w-60'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className={`flex h-14 shrink-0 items-center border-b border-[#c8e6d6] px-4 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-[var(--bg-primary)] border-r border-[var(--border-primary)] transition-all duration-300 lg:sticky lg:top-0 ${collapsed ? 'w-16' : 'w-60'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+        <div className={`flex h-14 shrink-0 items-center border-b border-[var(--border-primary)] px-4 ${collapsed ? 'justify-center' : 'justify-between'}`}>
           {!collapsed && <BrandLogo showTagline={false} />}
           <button 
             type="button" 
             onClick={() => setCollapsed(!collapsed)} 
-            className="grid h-8 w-8 place-items-center text-[#64748b] hover:bg-[#f0f7f4] rounded-lg transition-colors"
+            className="grid h-8 w-8 place-items-center text-[var(--text-muted)] hover:bg-[var(--bg-hover)] rounded-lg transition-colors"
           >
             {collapsed ? (
               <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18l6-6-6-6" /></svg>
@@ -260,8 +260,8 @@ export default function AppShell({ children }) {
           ))}
         </nav>
         
-        <div className="shrink-0 border-t border-[#c8e6d6] p-2">
-          <button type="button" onClick={requestLogout} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#334155] hover:bg-[#f0f7f4] transition-colors ${collapsed ? 'justify-center' : ''}`}>
+        <div className="shrink-0 border-t border-[var(--border-primary)] p-2">
+          <button type="button" onClick={requestLogout} className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] transition-colors ${collapsed ? 'justify-center' : ''}`}>
             <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="m16 17 5-5-5-5M21 12H9" /></svg>
             {!collapsed && <span>Keluar</span>}
           </button>
@@ -319,7 +319,7 @@ export default function AppShell({ children }) {
         
         <main className="flex-1 p-4 sm:p-6 pb-16">{children}</main>
         
-        <footer className="fixed bottom-0 left-0 right-0 z-20 border-t border-[#c8e6d6] bg-white px-4 py-2.5 text-xs text-[#64748b] text-center lg:left-60">
+        <footer className="fixed bottom-0 left-0 right-0 z-20 border-t border-[var(--border-primary)] bg-[var(--bg-primary)] px-4 py-2.5 text-xs text-[var(--text-muted)] text-center lg:left-60">
           © {new Date().getFullYear()} Medicore Clinic. All rights reserved.
         </footer>
       </div>

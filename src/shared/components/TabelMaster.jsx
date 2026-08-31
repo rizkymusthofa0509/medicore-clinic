@@ -1,18 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
 
-/**
- * TabelMaster - Komponen tabel reusable untuk semua Data Master
- * 
- * Props:
- * - columns: [{ key, label, render?, sortable?, width? }]
- * - data: array of objects
- * - searchKey: key untuk pencarian (bisa array untuk multi-field)
- * - searchPlaceholder: placeholder input search
- * - emptyMessage: message saat data kosong
- * - onRowClick?: (row) => void
- * - striped?: boolean (default true)
- * - compact?: boolean (default false)
- */
 export function TabelMaster({
   columns,
   data,
@@ -20,13 +7,11 @@ export function TabelMaster({
   searchPlaceholder = 'Cari...',
   emptyMessage = 'Tidak ada data',
   onRowClick,
-  striped = true,
   compact = false,
 }) {
   const [search, setSearch] = useState('')
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' })
 
-  // Filter data berdasarkan pencarian
   const filteredData = useMemo(() => {
     if (!search.trim()) return data
     const q = search.toLowerCase().trim()
@@ -39,7 +24,6 @@ export function TabelMaster({
     )
   }, [data, search, searchKey])
 
-  // Sort data
   const sortedData = useMemo(() => {
     if (!sortConfig.key) return filteredData
     return [...filteredData].sort((a, b) => {
@@ -77,28 +61,28 @@ export function TabelMaster({
             className="input pl-10"
           />
         </div>
-        <span className="text-caption text-[var(--text-muted)]">
+        <span className="text-sm text-[var(--text-muted)]">
           {sortedData.length} dari {data.length} data
         </span>
       </div>
 
       {/* Table */}
-      <div className="table-container">
-        <table className="table">
+      <div className="card overflow-hidden">
+        <table className="w-full">
           <thead>
-            <tr>
-              <th className={`${cellPadding} w-12`}>
-                <span className="text-[11px] font-medium text-[var(--text-muted)]">No</span>
+            <tr className="border-b border-[var(--border-primary)]">
+              <th className={`${cellPadding} w-12 text-left`}>
+                <span className="text-xs font-medium text-[var(--text-muted)]">No</span>
               </th>
               {columns.map(col => (
                 <th
                   key={col.key}
-                  className={`${cellPadding} ${col.sortable !== false ? 'cursor-pointer hover:text-[var(--text-primary)]' : ''}`}
+                  className={`${cellPadding} text-left ${col.sortable !== false ? 'cursor-pointer hover:text-[var(--text-primary)]' : ''}`}
                   onClick={() => col.sortable !== false && handleSort(col.key)}
                   style={{ width: col.width }}
                 >
                   <div className="flex items-center gap-1">
-                    <span className="text-[11px] font-medium text-[var(--text-muted)] uppercase tracking-wider">{col.label}</span>
+                    <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">{col.label}</span>
                     {col.sortable !== false && sortConfig.key === col.key && (
                       <svg className="w-3 h-3 text-[var(--brand-primary)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         {sortConfig.direction === 'asc' ? <path d="M12 5l-7 7h14l-7-7z" /> : <path d="M12 19l7-7H5l7 7z" />}
@@ -113,11 +97,11 @@ export function TabelMaster({
             {sortedData.length === 0 ? (
               <tr>
                 <td colSpan={columns.length + 1} className={`${cellPadding} text-center`}>
-                  <div className="py-8">
-                    <svg className="w-10 h-10 mx-auto text-[var(--text-muted)] mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <div className="py-12">
+                    <svg className="w-12 h-12 mx-auto text-[var(--text-muted)] opacity-50 mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                       <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <p className="text-body-sm text-[var(--text-muted)]">
+                    <p className="text-sm text-[var(--text-muted)]">
                       {search ? `Tidak ditemukan "${search}"` : emptyMessage}
                     </p>
                   </div>
@@ -127,13 +111,13 @@ export function TabelMaster({
               sortedData.map((row, idx) => (
                 <tr
                   key={row.id || idx}
-                  className={onRowClick ? 'cursor-pointer' : ''}
+                  className={`border-b border-[var(--border-primary)] last:border-b-0 ${onRowClick ? 'cursor-pointer' : ''} hover:bg-[var(--bg-hover)] transition-colors`}
                   onClick={() => onRowClick?.(row)}
                 >
-                  <td className={`${cellPadding} text-caption text-[var(--text-muted)]`}>{idx + 1}</td>
+                  <td className={`${cellPadding} text-sm text-[var(--text-muted)]`}>{idx + 1}</td>
                   {columns.map(col => (
-                    <td key={col.key} className={cellPadding}>
-                      {col.render ? col.render(row[col.key], row) : row[col.key]}
+                    <td key={col.key} className={`${cellPadding} text-sm`}>
+                      {col.render ? col.render(row[col.key], row) : <span className="text-[var(--text-primary)]">{row[col.key]}</span>}
                     </td>
                   ))}
                 </tr>
