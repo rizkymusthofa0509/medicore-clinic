@@ -1,22 +1,37 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { login } from '../../../shared/api.js'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleLogin = async (e) => {
     e.preventDefault()
     setLoading(true)
-    await new Promise(r => setTimeout(r, 500))
-    localStorage.setItem('medicore_token', 'demo-token')
-    localStorage.setItem('medicore_user', JSON.stringify({ name: username || 'Admin', role: 'admin' }))
-    window.dispatchEvent(new Event('auth:changed'))
-    setLoading(false)
-    const next = new URLSearchParams(location.search).get('next') || '/'
-    navigate(next)
+    setError('')
+
+    try {
+      const response = await login(email, password)
+      const { token, user } = response.data
+
+      localStorage.setItem('medicore_token', token)
+      localStorage.setItem('medicore_user', JSON.stringify(user))
+
+      window.dispatchEvent(new Event('auth:changed'))
+
+      const next = new URLSearchParams(location.search).get('next') || '/'
+      navigate(next)
+    } catch (err) {
+      const message = err.response?.data?.message || err.response?.data?.email?.[0] || 'Gagal periksa koneksi ke server.'
+      setError(message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -38,8 +53,8 @@ export default function LoginPage() {
             </div>
           </div>
           <span className="text-caption text-[var(--text-muted)] flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-            Demo Mode
+            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+            Production
           </span>
         </div>
       </header>
@@ -60,34 +75,44 @@ export default function LoginPage() {
               <p className="text-body-sm text-[var(--text-secondary)] mt-1">Akses penuh sebagai Admin</p>
             </div>
 
+            {error && (
+              <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 text-body-sm">
+                {error}
+              </div>
+            )}
+
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="label">Username</label>
+                <label className="label">Email</label>
                 <input
-                  type="text"
-                  value={username}
-                  onChange={e => setUsername(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
                   className="input"
-                  placeholder="Masukkan username"
-                  autoComplete="username"
+                  placeholder="admin@medicore.com"
+                  autoComplete="email"
+                  required
                 />
               </div>
               <div>
                 <label className="label">Kata Sandi</label>
                 <input
                   type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
                   className="input"
                   placeholder="Masukkan kata sandi"
                   autoComplete="current-password"
-                  defaultValue="demo"
+                  required
                 />
               </div>
               <button type="submit" disabled={loading} className="btn btn-primary w-full btn-lg">
                 {loading ? 'Memproses...' : 'Masuk'}
               </button>
             </form>
+
             <p className="text-center text-tiny text-[var(--text-muted)] mt-4">
-              Demo: Masukkan username apapun untuk mengakses.
+              Demo: admin@medicore.com / password
             </p>
           </div>
         </div>
@@ -97,7 +122,7 @@ export default function LoginPage() {
       <footer className="border-t border-[var(--border-primary)] bg-[var(--bg-primary)] py-3">
         <div className="max-w-5xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-2 text-tiny text-[var(--text-muted)]">
           <span>© 2024 Medicore Clinic. All rights reserved.</span>
-          <span>Versi Demo 1.0.0</span>
+          <span>Versi 1.0.0</span>
         </div>
       </footer>
     </div>
