@@ -76,7 +76,6 @@ function NavGroup({ group, open, onToggle, pathname, collapsed }) {
       <div 
         className="relative"
         onMouseEnter={() => setShowDropdown(true)}
-        onMouseLeave={() => setShowDropdown(false)}
       >
         <button 
           type="button" 
@@ -90,7 +89,6 @@ function NavGroup({ group, open, onToggle, pathname, collapsed }) {
           <div 
             style={{ zIndex: 99999 }}
             className="absolute left-full top-0 ml-2 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-large)] py-2"
-            onMouseEnter={() => setShowDropdown(true)}
             onMouseLeave={() => setShowDropdown(false)}
           >
             <div className="px-3 py-2 text-[11px] font-bold text-[var(--brand-primary)] uppercase tracking-wider border-b border-[var(--border-primary)]">{group.group}</div>
