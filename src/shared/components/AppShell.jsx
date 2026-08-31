@@ -364,10 +364,9 @@ export default function AppShell({ children }) {
                     </span>
                   )}
                 </button>
-                {true && accessibleBranches.length > 0 && (
+                {showBranchDropdown && accessibleBranches.length > 0 && (
                   <div 
-                    className="absolute right-0 top-full mt-1 w-56 rounded-xl border-4 border-red-500 bg-[var(--bg-primary)] shadow-2xl py-1.5 z-[99999]"
-                    style={{ position: 'fixed', top: 60, right: 200 }}
+                    className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5 z-[99999]"
                     onMouseLeave={() => setShowBranchDropdown(false)}
                   >
                     <div className="px-3 py-1.5 border-b border-[var(--border-primary)]">
