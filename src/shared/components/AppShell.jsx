@@ -77,18 +77,19 @@ function NavGroup({ group, open, onToggle, pathname, collapsed }) {
         className="relative"
         onMouseEnter={() => setShowDropdown(true)}
         onMouseLeave={() => setShowDropdown(false)}
-        onClick={() => setShowDropdown(!showDropdown)}
       >
         <button 
           type="button" 
           className={`w-full flex items-center justify-center p-2.5 rounded-lg transition-colors ${isActive ? 'bg-[var(--brand-primary)] text-white' : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'}`}
           title={group.group}
+          onClick={() => setShowDropdown(!showDropdown)}
         >
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.75"><path d={group.icon} /></svg>
         </button>
         {showDropdown && (
           <div 
-            className="absolute left-full top-0 ml-2 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-large)] py-2 z-[9999]"
+            style={{ zIndex: 99999 }}
+            className="absolute left-full top-0 ml-2 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-[var(--shadow-large)] py-2"
             onMouseEnter={() => setShowDropdown(true)}
             onMouseLeave={() => setShowDropdown(false)}
           >
@@ -238,7 +239,7 @@ export default function AppShell({ children }) {
       {mobileOpen && (<div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />)}
       
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-[var(--bg-primary)] border-r border-[var(--border-primary)] transition-all duration-300 lg:sticky lg:top-0 ${collapsed ? 'w-16' : 'w-60'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex h-screen flex-col bg-[var(--bg-primary)] border-r border-[var(--border-primary)] transition-all duration-300 lg:sticky lg:top-0 overflow-visible ${collapsed ? 'w-16' : 'w-60'} ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
         <div className={`flex h-14 shrink-0 items-center border-b border-[var(--border-primary)] px-4 ${collapsed ? 'justify-center' : 'justify-between'}`}>
           {!collapsed && <BrandLogo showTagline={false} />}
           <button 
@@ -254,7 +255,7 @@ export default function AppShell({ children }) {
           </button>
         </div>
         
-        <nav className="flex-1 overflow-y-auto py-3 px-2">
+        <nav className={`flex-1 py-3 px-2 ${collapsed ? 'overflow-visible' : 'overflow-y-auto'}`}>
           {MENU.map((g) => (
             <NavGroup key={g.group} group={g} open={openGroups[g.group]} onToggle={() => toggleGroup(g.group)} pathname={location.pathname} collapsed={collapsed} />
           ))}
