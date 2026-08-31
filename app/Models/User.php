@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -26,6 +28,7 @@ class User extends Authenticatable
     ];
 
     protected $casts = [
+        'email_verified_at' => 'datetime',
         'password' => 'hashed',
         'is_active' => 'boolean',
     ];
@@ -37,28 +40,23 @@ class User extends Authenticatable
 
     public function isActive(): bool
     {
-        return $this->is_active === true;
+        return $this->is_active;
     }
 
-    public function scopeActive($query)
+    public function branch(): BelongsTo
     {
-        return $query->where('is_active', true);
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class, 'user_branches')
+                    ->withPivot('is_default')
+                    ->withTimestamps();
     }
 
     public function scopeAdmin($query)
     {
         return $query->where('role', 'admin');
-    }
-
-    public function branch()
-    {
-        return $this->belongsTo(Branch::class);
-    }
-
-    public function branches()
-    {
-        return $this->belongsToMany(Branch::class, 'user_branches', 'user_id', 'branch_id')
-                    ->withPivot('is_default')
-                    ->withTimestamps();
     }
 }
