@@ -1,22 +1,25 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo, useRef, createPortal } from 'react'
 
 // ==================== ACTION DROPDOWN (Vertical Dots) ====================
-export function ActionDropdown({ actions, rowIndex }) {
+export function ActionDropdown({ actions, row }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const btnRef = useRef(null)
 
   useEffect(() => {
     const onClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+      if (btnRef.current && !btnRef.current.parentElement?.contains(e.target)) setOpen(false)
     }
-    document.addEventListener('mousedown', onClick)
+    if (open) document.addEventListener('mousedown', onClick)
     return () => document.removeEventListener('mousedown', onClick)
-  }, [])
+  }, [open])
+
+  const rect = btnRef.current?.getBoundingClientRect()
 
   return (
-    <div className="relative" ref={ref}>
+    <span className="relative">
       <button
         type="button"
+        ref={btnRef}
         onClick={(e) => { e.stopPropagation(); setOpen(!open) }}
         className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
         title="Aksi"
@@ -27,9 +30,15 @@ export function ActionDropdown({ actions, rowIndex }) {
           <circle cx="12" cy="19" r="2" />
         </svg>
       </button>
-      {open && (
+      {open && rect && createPortal(
         <div
-          className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-xl py-1.5 z-[9999]"
+          style={{
+            position: 'fixed',
+            zIndex: 999999,
+            top: rect.bottom + 4,
+            left: rect.right - 192,
+          }}
+          className="w-48 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5"
           onClick={(e) => e.stopPropagation()}
         >
           {actions.map((action, idx) => (
@@ -39,7 +48,7 @@ export function ActionDropdown({ actions, rowIndex }) {
               onClick={(e) => {
                 e.stopPropagation()
                 setOpen(false)
-                action.onClick?.(rowIndex)
+                action.onClick?.(row)
               }}
               className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
                 action.danger 
@@ -51,9 +60,10 @@ export function ActionDropdown({ actions, rowIndex }) {
               <span className="truncate">{action.label}</span>
             </button>
           ))}
-        </div>
+        </div>,
+        document.body
       )}
-    </div>
+    </span>
   )
 }
 
@@ -132,7 +142,7 @@ export function TabelMaster({
       </div>
 
       {/* Table */}
-      <div className="card overflow-hidden">
+      <div className="card overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
@@ -190,7 +200,7 @@ export function TabelMaster({
                     if (col.key === '__actions__') {
                       return (
                         <td key={col.key} className={`${cellPadding} text-right`}>
-                          {actions && <ActionDropdown actions={actions} row={row} rowIndex={idx} />}
+                          {actions && <ActionDropdown actions={actions} row={row} />}
                         </td>
                       )
                     }
