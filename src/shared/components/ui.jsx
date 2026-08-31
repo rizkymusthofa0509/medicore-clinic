@@ -1,6 +1,6 @@
 // Komponen UI bersama — design system industrial/utilitarian
 // Bukan template SaaS. Terasa seperti aplikasi engineering/teknik lapangan.
-import { useEffect, useState, useRef, Fragment } from 'react'
+import { useEffect, useState, useRef, Fragment, useCallback } from 'react'
 
 // ==================== PAGE HEADER ====================
 export function PageHeader({ title, desc, actions, className = '' }) {
@@ -242,28 +242,99 @@ export function SpbBadge({ status, className = '' }) {
   return <Badge tone={SPB_TONE[status] || 'neutral'} className={className} mono>{status}</Badge>
 }
 
+// ==================== TOAST / NOTIFICATION ====================
+const toastIcons = {
+  success: (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><path d="M22 4L12 14.01l-3-3" /></svg>
+  ),
+  error: (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M15 9l-6 6M9 9l6 6" /></svg>
+  ),
+  warning: (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>
+  ),
+  info: (
+    <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>
+  ),
+}
+
+const toastTones = {
+  success: 'bg-emerald-500 text-white',
+  error: 'bg-red-500 text-white',
+  warning: 'bg-amber-500 text-white',
+  info: 'bg-blue-500 text-white',
+}
+
+export function ToastContainer({ toasts, onRemove }) {
+  return (
+    <div className="fixed bottom-4 right-4 z-[99999] flex flex-col gap-2 max-w-sm">
+      {toasts.map(toast => (
+        <div
+          key={toast.id}
+          className={`flex items-start gap-3 px-4 py-3 rounded-xl shadow-lg shadow-black/20 animate-slide-in ${toastTones[toast.type] || toastTones.info}`}
+        >
+          <span className="shrink-0 mt-0.5">{toastIcons[toast.type] || toastIcons.info}</span>
+          <div className="flex-1 min-w-0">
+            {toast.title && <p className="font-semibold text-sm">{toast.title}</p>}
+            <p className="text-sm opacity-90">{toast.message}</p>
+          </div>
+          <button onClick={() => onRemove(toast.id)} className="shrink-0 opacity-70 hover:opacity-100">
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// Hook untuk manage toast
+export function useToast() {
+  const [toasts, setToasts] = useState([])
+
+  const addToast = useCallback((type, message, title = '') => {
+    const id = Date.now() + Math.random()
+    setToasts(prev => [...prev, { id, type, message, title }])
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id))
+    }, 4000)
+  }, [])
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id))
+  }, [])
+
+  const toast = {
+    success: (msg, title) => addToast('success', msg, title),
+    error: (msg, title) => addToast('error', msg, title),
+    warning: (msg, title) => addToast('warning', msg, title),
+    info: (msg, title) => addToast('info', msg, title),
+    Container: () => <ToastContainer toasts={toasts} onRemove={removeToast} />,
+  }
+
+  return toast
+}
+
 // ==================== MODAL ====================
-export function Modal({ open, onClose, title, children, wide = false, className = '' }) {
+export function Modal({ open, onClose, title, children, size = 'md', className = '' }) {
   if (!open) return null
+  const sizes = { sm: 'max-w-md', md: 'max-w-lg', lg: 'max-w-2xl', xl: 'max-w-4xl' }
   return (
     <Fragment>
       <div
-        className="modal-overlay"
+        className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
         onMouseDown={(e) => { if (e.target === e.currentTarget) onClose?.() }}
-        role="dialog" aria-modal="true" aria-labelledby="modal-title"
       >
         <div
-          className={`modal-content ${wide ? 'max-w-3xl' : 'max-w-lg'} ${className}`}
+          className={`w-full ${sizes[size]} bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-2xl shadow-2xl ${className}`}
           onMouseDown={(e) => e.stopPropagation()}
-          onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between border-b border-[var(--border-primary)] px-5 py-3.5">
-            <h3 id="modal-title" className="font-display text-heading-md text-[var(--text-primary)] pr-3">{title}</h3>
-            <button type="button" onClick={onClose} className="btn btn-ghost btn-icon-sm" title="Tutup" aria-label="Tutup dialog">
-              <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
+          <div className="flex items-center justify-between border-b border-[var(--border-primary)] px-5 py-4">
+            <h3 className="text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
+            <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-hover)] transition-colors">
+              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12" /></svg>
             </button>
           </div>
-          <div className="p-5 overflow-y-auto max-h-[calc(88vh_-_56px)]">{children}</div>
+          <div className="p-5 max-h-[calc(80vh-80px)] overflow-y-auto">{children}</div>
         </div>
       </div>
     </Fragment>
