@@ -247,6 +247,7 @@ export default function AppShell({ children }) {
   useEffect(() => { setOpenGroups((prev) => { const next = { ...prev }; MENU.forEach((g) => { if (g.icon && groupContainsPath(g, location.pathname)) next[g.group] = true }); return next }) }, [location.pathname])
   
   const [activeDropdown, setActiveDropdown] = useState(null)
+  const [showBranchDropdown, setShowBranchDropdown] = useState(false)
   
   const [logoutOpen, setLogoutOpen] = useState(false)
   const requestLogout = () => setLogoutOpen(true)
@@ -330,11 +331,61 @@ export default function AppShell({ children }) {
               <h1 className="truncate text-base font-semibold text-white">{title}</h1>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              {showBranchSelector && (
-                <select value={branchId} onChange={(e) => { setCurrentBranch(e.target.value); setBranchIdState(e.target.value) }} className="bg-white/10 border border-white/20 text-white text-sm rounded-lg px-3 py-1.5 w-36 focus:outline-none focus:ring-2 focus:ring-white/30">
-                  <option value="" className="text-[#1b4332]">-- Branch --</option>
-                  {accessibleBranches.map(b => (<option key={b.id} value={b.id} className="text-[#1b4332]">{b.nama}</option>))}
-                </select>
+              {/* Branch Selector Dropdown */}
+              {accessibleBranches.length > 0 && (
+                <div className="relative">
+                  <button 
+                    type="button"
+                    onClick={() => setShowBranchDropdown(!showBranchDropdown)}
+                    className={`p-2 rounded-lg transition-all flex items-center gap-1.5 ${branchId ? 'text-[#95d5b2] hover:bg-white/10' : 'text-white/60 hover:bg-white/10'}`}
+                    title="Pilih Branch"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M3 21h18M5 21V7l8-4 8 4v14M8 21V12a4 4 0 014-4v0a4 4 0 014 4v9"/>
+                    </svg>
+                    {accessibleBranches.find(b => b.id === branchId) && (
+                      <span className="hidden sm:block text-xs max-w-[80px] truncate">
+                        {accessibleBranches.find(b => b.id === branchId)?.nama || 'Branch'}
+                      </span>
+                    )}
+                  </button>
+                  {showBranchDropdown && (
+                    <div 
+                      className="absolute right-0 top-full mt-1 w-56 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5 z-[99999]"
+                      onMouseLeave={() => setShowBranchDropdown(false)}
+                    >
+                      <div className="px-3 py-1.5 border-b border-[var(--border-primary)]">
+                        <span className="text-xs font-semibold text-[var(--text-muted)] uppercase">Pilih Branch</span>
+                      </div>
+                      {accessibleBranches.map(b => {
+                        const isActive = b.id === branchId
+                        return (
+                          <button
+                            key={b.id}
+                            type="button"
+                            onClick={() => {
+                              setCurrentBranch(b.id)
+                              setBranchIdState(b.id)
+                              setShowBranchDropdown(false)
+                            }}
+                            className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+                              isActive 
+                                ? 'bg-[var(--bg-hover)] text-[var(--brand-primary)] font-medium' 
+                                : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+                            }`}
+                          >
+                            <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill={isActive ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2">
+                              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                              <path d="M22 4L12 14.01l-3-3"/>
+                            </svg>
+                            <span className="truncate flex-1 text-left">{b.nama}</span>
+                            <span className="text-[10px] text-[var(--text-muted)]">{b.code}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               )}
               <button 
                 type="button" 
