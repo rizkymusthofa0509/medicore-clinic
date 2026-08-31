@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { login } from '../../../shared/api.js'
 import { saveAuthData } from '../../../shared/auth.js'
+import { setUserBranches } from '../../../shared/store/clinic.js'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -21,6 +22,7 @@ export default function LoginPage() {
       const { token, user } = response.data
 
       saveAuthData(token, user)
+      setUserBranches(user.branches || [])
       window.dispatchEvent(new Event('auth:changed'))
 
       const next = new URLSearchParams(location.search).get('next') || '/'

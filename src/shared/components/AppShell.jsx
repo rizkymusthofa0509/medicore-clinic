@@ -4,7 +4,7 @@ import { BrandLogo } from './Brand.jsx'
 import { toggleTheme } from '../theme.js'
 import { getUser, logout } from '../auth.js'
 import { ConfirmDialog } from './ui.jsx'
-import { getBranches, getCurrentBranchId, setCurrentBranch } from '../../shared/store/clinic.js'
+import { getBranches, getCurrentBranchId, setCurrentBranch, getUserBranches, setUserBranches, getAccessibleBranches } from '../../shared/store/clinic.js'
 import { pingServer } from '../api.js'
 
 const MENU = [
@@ -184,6 +184,7 @@ export default function AppShell({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const title = PAGE_TITLES[location.pathname] || 'Medicore Clinic'
   const [user, setUser] = useState(null)
+  const [userBranches, setUserBranchesState] = useState([])
   const [branchId, setBranchIdState] = useState(() => getCurrentBranchId())
   const [serverStatus, setServerStatus] = useState('checking')
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'))
@@ -212,7 +213,14 @@ export default function AppShell({ children }) {
   
   useEffect(() => {
     let cancelled = false
-    const load = async () => { const u = await getUser(); if (cancelled) return; if (!u) { navigate('/login', { replace: true }); return }; setUser(u) }
+    const load = async () => { 
+      const u = await getUser()
+      if (cancelled) return
+      if (!u) { navigate('/login', { replace: true }); return }
+      setUser(u)
+      const branches = u.branches && u.branches.length > 0 ? u.branches : getBranches()
+      setUserBranchesState(branches)
+    }
     load()
     const onChange = () => load()
     window.addEventListener('auth:changed', onChange)
@@ -233,6 +241,11 @@ export default function AppShell({ children }) {
   const [loggingOut, setLoggingOut] = useState(false)
   const confirmLogout = async () => { setLoggingOut(true); try { await logout() } finally { setLoggingOut(false); setLogoutOpen(false); navigate('/login', { replace: true }) } }
   const handleThemeToggle = () => { toggleTheme(); setIsDark(document.documentElement.classList.contains('dark')) }
+
+  // Filter branches based on user access
+  const allBranches = getBranches()
+  const accessibleBranches = user ? getAccessibleBranches(allBranches) : allBranches
+  const showBranchSelector = accessibleBranches.length > 1
 
   return (
     <div className="flex min-h-screen bg-[var(--bg-secondary)]">
@@ -287,10 +300,12 @@ export default function AppShell({ children }) {
               <h1 className="truncate text-base font-semibold text-white">{title}</h1>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <select value={branchId} onChange={(e) => { setCurrentBranch(e.target.value); setBranchIdState(e.target.value) }} className="bg-white/10 border border-white/20 text-white text-sm rounded-lg px-3 py-1.5 w-36 focus:outline-none focus:ring-2 focus:ring-white/30">
-                <option value="" className="text-[#1b4332]">-- Branch --</option>
-                {getBranches().map(b => (<option key={b.id} value={b.id} className="text-[#1b4332]">{b.nama}</option>))}
-              </select>
+              {showBranchSelector && (
+                <select value={branchId} onChange={(e) => { setCurrentBranch(e.target.value); setBranchIdState(e.target.value) }} className="bg-white/10 border border-white/20 text-white text-sm rounded-lg px-3 py-1.5 w-36 focus:outline-none focus:ring-2 focus:ring-white/30">
+                  <option value="" className="text-[#1b4332]">-- Branch --</option>
+                  {accessibleBranches.map(b => (<option key={b.id} value={b.id} className="text-[#1b4332]">{b.nama}</option>))}
+                </select>
+              )}
               <button 
                 type="button" 
                 className={`p-2 rounded-lg transition-all ${serverStatus === 'online' ? 'text-emerald-300 hover:bg-white/10' : serverStatus === 'offline' ? 'text-red-300 hover:bg-white/10' : 'text-white/60 hover:bg-white/10'}`}

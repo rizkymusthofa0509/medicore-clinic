@@ -1,9 +1,9 @@
 // ============================================================
 // shared/store/clinic.js — Store lokal untuk data cabang & dummy
-// Data master lainnya akan diambil dari API
 // ============================================================
 
 const BRANCH_KEY = 'medicore_branch'
+const USER_BRANCHES_KEY = 'medicore_user_branches'
 
 // Default branches
 const DEFAULT_BRANCHES = [
@@ -27,6 +27,33 @@ export function setCurrentBranch(id) {
   localStorage.setItem(BRANCH_KEY, id)
 }
 
+// User branches management
+export function getUserBranches() {
+  try {
+    const data = localStorage.getItem(USER_BRANCHES_KEY)
+    if (data) {
+      const parsed = JSON.parse(decodeURIComponent(escape(atob(data))))
+      return parsed
+    }
+  } catch {}
+  // Default: semua branch
+  return DEFAULT_BRANCHES
+}
+
+export function setUserBranches(branches) {
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(branches))))
+    localStorage.setItem(USER_BRANCHES_KEY, encoded)
+  } catch {}
+}
+
+export function getAccessibleBranches(allBranches) {
+  const userBranches = getUserBranches()
+  const userBranchIds = userBranches.map(b => b.id)
+  return allBranches.filter(b => userBranchIds.includes(b.id))
+}
+
+// Dummy data functions (akan diganti API)
 export function getDashboardStats(branchId) {
   return {
     totalKunjungan: 156,
