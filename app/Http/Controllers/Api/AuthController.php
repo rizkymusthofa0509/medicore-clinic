@@ -54,6 +54,8 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'branch_id' => $user->branch_id,
+                'branch_name' => $user->branch?->name,
             ],
         ]);
     }
@@ -85,6 +87,8 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'role' => $user->role,
+                'branch_id' => $user->branch_id,
+                'branch_name' => $user->branch?->name,
             ],
         ]);
     }

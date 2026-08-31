@@ -17,6 +17,7 @@ class User extends Authenticatable
         'password',
         'role',
         'is_active',
+        'branch_id',
     ];
 
     protected $hidden = [
@@ -59,5 +60,13 @@ class User extends Authenticatable
     public function scopeAdmin($query)
     {
         return $query->where('role', 'admin');
+    }
+
+    /**
+     * Get the branch for this user
+     */
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 }
