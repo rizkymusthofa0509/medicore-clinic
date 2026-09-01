@@ -111,6 +111,8 @@ export default function App() {
         {/* Rawat Inap (Top Level) */}
         <Route path="/rawat-inap/pendaftaran-baru" element={<Protected><AppShell><PendaftaranPage /></AppShell></Protected>} />
         <Route path="/rawat-inap/pendaftaran-lama" element={<Protected><AppShell><RawatInapKunjunganPage /></AppShell></Protected>} />
+        <Route path="/rawat-inap/pendaftaran-lama/:kunjunganId/ttv" element={<Protected><AppShell><KunjunganTtvPage /></AppShell></Protected>} />
+        <Route path="/rawat-inap/pendaftaran-lama/:kunjunganId/nursing-assessment" element={<Protected><AppShell><NursingAssessmentPage /></AppShell></Protected>} />
         <Route path="/rawat-inap/laporan-kunjungan" element={<Navigate to="/kunjungan?tipe=rawat_inap" replace />} />
         <Route path="/rawat-inap/pemeriksaan-dokter" element={<Protected><AppShell><RawatInapPemeriksaanPage /></AppShell></Protected>} />
         <Route path="/rawat-inap/verifikasi-farmasi" element={<Protected><AppShell><RawatInapFarmasiPage /></AppShell></Protected>} />

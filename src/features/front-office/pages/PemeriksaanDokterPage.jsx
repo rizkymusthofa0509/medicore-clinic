@@ -515,7 +515,7 @@ export default function PemeriksaanDokterPage({ tipeKunjungan = 'rawat_jalan' })
     }
   }
 
-  const buatJanji = () => navigate('/janji-kunjungan')
+  const buatJanji = () => navigate(tipeKunjungan === 'rawat_inap' ? '/rawat-inap/janji-kunjungan' : '/janji-kunjungan')
   const buatResepLuar = () => toast('Modul Resep Luar akan segera tersedia.', 'info')
   const buatSurat = () => toast('Modul Surat (keterangan sakit, rujukan, dll) akan segera tersedia.', 'info')
 

@@ -115,6 +115,9 @@ export default function KunjunganPage({ tipeKunjungan = 'rawat_jalan' }) {
   const [todayLoading, setTodayLoading] = useState(false)
   const [filterDate, setFilterDate] = useState(() => todayLocal())
 
+  // Base path sesuai tipe kunjungan: rawat jalan → /pendaftaran-lama, rawat inap → /rawat-inap/pendaftaran-lama
+  const baseKunjunganPath = tipeKunjungan === 'rawat_inap' ? '/rawat-inap/pendaftaran-lama' : '/pendaftaran-lama'
+
   const [editTarget, setEditTarget] = useState(null)
   const [editForm, setEditForm] = useState({
     // Identitas
@@ -720,7 +723,7 @@ export default function KunjunganPage({ tipeKunjungan = 'rawat_jalan' }) {
               loading={todayLoading}
               emptyMessage={filterDate ? `Belum ada kunjungan pada ${new Date(filterDate + 'T00:00:00').toLocaleDateString('id-ID')}` : 'Belum ada kunjungan'}
               actions={[
-                { label: 'TTV > Tanda - Tanda Vital', onClick: (row) => navigate(`/pendaftaran-lama/${row.encodedId}/ttv`), icon: (
+                { label: 'TTV > Tanda - Tanda Vital', onClick: (row) => navigate(`${baseKunjunganPath}/${row.encodedId}/ttv`), icon: (
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M20.84 4.61a2.17 2.17 0 01-.74 1.47L9.5 14.51l-4.73 1.19 1.2-4.8 10.4-6.05a1.65 1.65 0 012.12.77 1.65 1.65 0 01-.43 1.9z"/><circle cx="12" cy="12" r="8" style={{transform:'scale(1.2)'}}/></svg>
                 )},
                 { label: 'Update > Perbarui data Kunjungan', onClick: (row) => handleOpenEdit(row), icon: (
@@ -732,7 +735,7 @@ export default function KunjunganPage({ tipeKunjungan = 'rawat_jalan' }) {
                 { label: 'Cetak Antrian', onClick: (row) => handlePrintQueue(row), icon: (
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.75"><rect x="6" y="9" width="12" height="10" ry="2"/><path d="M6 9V5a6 6 0 0 1 12 0v4M9 13h6v2H9z"/></svg>
                 )},
-                { label: 'Assesment Keperawatan', onClick: (row) => navigate(`/pendaftaran-lama/${row.encodedId}/nursing-assessment`), icon: (
+                { label: 'Assesment Keperawatan', onClick: (row) => navigate(`${baseKunjunganPath}/${row.encodedId}/nursing-assessment`), icon: (
                   <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.75"><path d="M9 11h6M9 15h6M12 7V4a5 5 0 0 1 5 5v4l2 3v2a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-2l2-3V9a5 5 0 0 1 5-5z"/></svg>
                 )},
                 { label: 'Hapus > Hapus Kunjungan', danger: true, onClick: (row) => setDeleteTarget(row), icon: (
