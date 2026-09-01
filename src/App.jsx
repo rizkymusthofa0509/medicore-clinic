@@ -10,6 +10,7 @@ import DatabasePasienPage from './features/front-office/pages/DatabasePasienPage
 import LaporanKunjunganPage from './features/laporan/pages/LaporanKunjunganPage.jsx'
 import PendapatanPage from './features/laporan/pages/PendapatanPage.jsx'
 import CetakSuratPage from './features/laporan/pages/CetakSuratPage.jsx'
+import LaporanLanjutanPage from './features/laporan/pages/LaporanLanjutanPage.jsx'
 import KunjunganPage from './features/front-office/pages/KunjunganPage.jsx'
 import KunjunganTtvPage from './features/front-office/pages/KunjunganTtvPage.jsx'
 import NursingAssessmentPage from './features/front-office/pages/NursingAssessmentPage.jsx'
@@ -174,13 +175,13 @@ export default function App() {
         <Route path="/mutasi-barang" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
         <Route path="/pesanan-pembelian" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
         <Route path="/pendapatan" element={<Protected><AppShell><PendapatanPage /></AppShell></Protected>} />
-        <Route path="/operasional" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
-        <Route path="/rekapitulasi" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
-        <Route path="/jasa-medis" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
+        <Route path="/operasional" element={<Protected><AppShell><LaporanLanjutanPage /></AppShell></Protected>} />
+        <Route path="/rekapitulasi" element={<Protected><AppShell><LaporanLanjutanPage /></AppShell></Protected>} />
+        <Route path="/jasa-medis" element={<Protected><AppShell><LaporanLanjutanPage /></AppShell></Protected>} />
         <Route path="/penjualan-obat" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
         <Route path="/penjualan-langsung" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
         <Route path="/cetak-surat" element={<Protected><AppShell><CetakSuratPage /></AppShell></Protected>} />
-        <Route path="/top-diagnosa" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
+        <Route path="/top-diagnosa" element={<Protected><AppShell><LaporanLanjutanPage /></AppShell></Protected>} />
         <Route path="/kunjungan-terhapus" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
 
         {/* Database Pasien & Settings */}
