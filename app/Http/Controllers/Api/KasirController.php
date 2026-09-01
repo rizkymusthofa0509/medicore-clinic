@@ -22,9 +22,12 @@ class KasirController extends Controller
         $tindakanItems = [];
         $racikItems = [];
 
+        // Normalisasi { rows: [...] } → array langsung
+        $rows = fn ($v) => is_array($v) && array_key_exists('rows', $v) ? ($v['rows'] ?? []) : ($v ?? []);
+
         $pd = $k?->relationLoaded('pemeriksaanDokter') ? $k->pemeriksaanDokter : null;
         if ($pd && ($pd->status ?? null) === 'final') {
-            foreach ($pd->pemberian_obat ?? [] as $r) {
+            foreach ($rows($pd->pemberian_obat) as $r) {
                 $harga = (float) ($r['harga'] ?? 0);
                 $jumlah = (int) ($r['jumlah'] ?? 0);
                 $nilai = $harga * $jumlah;
@@ -34,7 +37,7 @@ class KasirController extends Controller
             foreach ($pd->pemberian_obat_racik ?? [] as $r) {
                 $racikItems[] = ['jumlahKemasan' => (int) ($r['jumlahKemasan'] ?? 0), 'aturanPakai' => $r['aturanPakai'] ?? '-', 'detail' => $r['detail'] ?? '-'];
             }
-            foreach ($pd->pemberian_tindakan ?? [] as $r) {
+            foreach ($rows($pd->pemberian_tindakan) as $r) {
                 $biaya = (float) ($r['biaya'] ?? 0);
                 $jumlah = (int) ($r['jumlah'] ?? 0);
                 $nilai = $biaya * $jumlah;

@@ -284,6 +284,11 @@ class FarmasiController extends Controller
     {
         $k = $pd->kunjungan;
 
+        // Normalisasi { rows: [...] } → array langsung
+        $rows = fn ($v) => is_array($v) && array_key_exists('rows', $v) ? ($v['rows'] ?? []) : ($v ?? []);
+        $obatRows = $rows($pd->pemberian_obat);
+        $racikRows = $rows($pd->pemberian_obat_racik);
+
         return [
             'id' => $pd->id,
             'kunjunganId' => $pd->kunjungan_id,
@@ -296,9 +301,9 @@ class FarmasiController extends Controller
             'pasien' => $k?->pasien ? ['id' => $k->pasien->id, 'noRm' => $k->pasien->no_rm, 'nama' => $k->pasien->nama] : null,
             'poli' => $k?->poli ? ['nama' => $k->poli->nama] : null,
             'dokter' => $pd->dokter ? ['id' => $pd->dokter->id, 'nama' => $pd->dokter->nama] : null,
-            'pemberianObat' => $pd->pemberian_obat ?? [],
-            'pemberianObatRacik' => $pd->pemberian_obat_racik ?? [],
-            'totalObat' => collect($pd->pemberian_obat ?? [])->sum(fn ($r) => (float) ($r['harga'] ?? 0) * (int) ($r['jumlah'] ?? 0)),
+            'pemberianObat' => $obatRows,
+            'pemberianObatRacik' => $racikRows,
+            'totalObat' => collect($obatRows)->sum(fn ($r) => (float) ($r['harga'] ?? 0) * (int) ($r['jumlah'] ?? 0)),
             'createdAt' => $pd->created_at?->toIso8601String(),
         ];
     }

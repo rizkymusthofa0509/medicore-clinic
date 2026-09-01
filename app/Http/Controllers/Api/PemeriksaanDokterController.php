@@ -133,6 +133,9 @@ class PemeriksaanDokterController extends Controller
      */
     private function transform(PemeriksaanDokter $pd): array
     {
+        // Normalisasi: beberapa data lama tersimpan sebagai { rows: [...] } dari payload FE
+        $rows = fn ($v) => is_array($v) && array_key_exists('rows', $v) ? ($v['rows'] ?? []) : ($v ?? []);
+
         return [
             'id' => $pd->id,
             'branchId' => $pd->branch_id,
@@ -141,18 +144,20 @@ class PemeriksaanDokterController extends Controller
             'poliId' => $pd->poli_id,
             'dokterId' => $pd->dokter_id,
             'status' => $pd->status,
-            'registrasi' => $pd->registrasi ?? [],
-            'ttv' => $pd->ttv ?? [],
-            'pemeriksaanFisik' => $pd->pemeriksaan_fisik ?? [],
-            'anatomi' => $pd->anatomi ?? [],
-            'riwayatAlergi' => $pd->riwayat_alergi ?? [],
-            'riwayatObat' => $pd->riwayat_obat ?? [],
-            'riwayatPenyakit' => $pd->riwayat_penyakit ?? [],
-            'diagnosa' => $pd->diagnosa ?? [],
-            'pemberianObat' => $pd->pemberian_obat ?? [],
-            'pemberianObatRacik' => $pd->pemberian_obat_racik ?? [],
-            'pemberianTindakan' => $pd->pemberian_tindakan ?? [],
-            'catatan' => $pd->catatan ?? [],
+            'statusFarmasi' => $pd->status_farmasi ?? 'menunggu',
+            'catatanFarmasi' => $pd->catatan_farmasi,
+            'registrasi' => $rows($pd->registrasi),
+            'ttv' => $rows($pd->ttv),
+            'pemeriksaanFisik' => $rows($pd->pemeriksaan_fisik),
+            'anatomi' => $rows($pd->anatomi),
+            'riwayatAlergi' => $rows($pd->riwayat_alergi),
+            'riwayatObat' => $rows($pd->riwayat_obat),
+            'riwayatPenyakit' => $rows($pd->riwayat_penyakit),
+            'diagnosa' => $rows($pd->diagnosa),
+            'pemberianObat' => $rows($pd->pemberian_obat),
+            'pemberianObatRacik' => $rows($pd->pemberian_obat_racik),
+            'pemberianTindakan' => $rows($pd->pemberian_tindakan),
+            'catatan' => $rows($pd->catatan),
             'createdAt' => $pd->created_at?->toIso8601String(),
             'updatedAt' => $pd->updated_at?->toIso8601String(),
             'kunjungan' => $pd->relationLoaded('kunjungan') && $pd->kunjungan ? [

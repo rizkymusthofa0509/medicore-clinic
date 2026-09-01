@@ -59,6 +59,9 @@ class PendapatanController extends Controller
         $examDetail = [];
         $obatAgg = [];
         $tindakanAgg = [];
+        // Normalisasi { rows: [...] } → array langsung
+        $rows = fn ($v) => is_array($v) && array_key_exists('rows', $v) ? ($v['rows'] ?? []) : ($v ?? []);
+
         foreach ($exams as $exam) {
             $kid = $exam->kunjungan_id;
             $obatTotal = 0;
@@ -67,7 +70,7 @@ class PendapatanController extends Controller
             $tindakanItems = [];
             $racikItems = [];
 
-            foreach ($exam->pemberian_obat ?? [] as $row) {
+            foreach ($rows($exam->pemberian_obat) as $row) {
                 $harga = (float) ($row['harga'] ?? 0);
                 $jumlah = (int) ($row['jumlah'] ?? 0);
                 $nilai = $harga * $jumlah;
@@ -89,7 +92,7 @@ class PendapatanController extends Controller
                 }
             }
 
-            foreach ($exam->pemberian_tindakan ?? [] as $row) {
+            foreach ($rows($exam->pemberian_tindakan) as $row) {
                 $biaya = (float) ($row['biaya'] ?? 0);
                 $jumlah = (int) ($row['jumlah'] ?? 0);
                 $nilai = $biaya * $jumlah;
