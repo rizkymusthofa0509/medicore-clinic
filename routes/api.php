@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\DepoObatController;
 use App\Http\Controllers\Api\FarmasiController;
 use App\Http\Controllers\Api\KasirController;
 use App\Http\Controllers\Api\KunjunganController;
+use App\Http\Controllers\Api\LaporanLanjutanController;
 use App\Http\Controllers\Api\NakesController;
 use App\Http\Controllers\Api\ObatAlkesController;
 use App\Http\Controllers\Api\PasienController;
@@ -168,6 +169,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Laporan Pendapatan per branch
     Route::prefix('laporan')->group(function () {
         Route::get('/pendapatan', [PendapatanController::class, 'index']);
+        Route::get('/lanjutan', [LaporanLanjutanController::class, 'index']);
     });
 
     // Kasir & Pembayaran (data terpisah per branch_id)
