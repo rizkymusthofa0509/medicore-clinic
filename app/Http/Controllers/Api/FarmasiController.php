@@ -15,13 +15,15 @@ class FarmasiController extends Controller
     /**
      * GET /api/farmasi/resep
      * Antrian resep menunggu verifikasi / sudah dispensed (per branch).
-     * Query: branch_id, status(menunggu|dispensed), date_from, date_to, q, limit
+     * Query: branch_id, status(menunggu|dispensed), tipe(rawat_jalan|rawat_inap),
+     *        date_from, date_to, q, limit
      */
     public function resep(Request $request)
     {
         $validated = $request->validate([
             'branch_id' => 'required|integer|exists:branches,id',
             'status' => 'nullable|in:menunggu,dispensed,dibatalkan',
+            'tipe' => 'nullable|in:rawat_jalan,rawat_inap',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date',
             'q' => 'nullable|string|max:200',
@@ -31,7 +33,7 @@ class FarmasiController extends Controller
         $branchId = (int) $validated['branch_id'];
 
         $query = PemeriksaanDokter::with([
-            'kunjungan:id,no_pendaftaran,tgl_jam_kunjungan,status,status_bayar',
+            'kunjungan:id,no_pendaftaran,tgl_jam_kunjungan,status,status_bayar,tipe_kunjungan',
             'kunjungan.pasien:id,no_rm,nama,jenis_kelamin,tanggal_lahir',
             'kunjungan.poli:id,nama',
             'dokter:id,nama',
@@ -40,6 +42,10 @@ class FarmasiController extends Controller
             ->forBranch($branchId)
             ->where('status', 'final')
             ->whereHas('kunjungan', fn ($q) => $q->where('status', '!=', 'batal'));
+
+        if (! empty($validated['tipe'])) {
+            $query->whereHas('kunjungan', fn ($q) => $q->where('tipe_kunjungan', $validated['tipe']));
+        }
 
         if (! empty($validated['status'])) {
             $query->where('status_farmasi', $validated['status']);
