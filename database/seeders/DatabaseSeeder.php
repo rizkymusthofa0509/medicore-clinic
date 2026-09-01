@@ -14,6 +14,13 @@ class DatabaseSeeder extends Seeder
         $this->call([
             BranchSeeder::class,
             AdminSeeder::class,
+            DepoObatSeeder::class,
+            MasterDataSeeder::class,
+            TindakanSeeder::class,
+            NakesSeeder::class,
+            AsuransiSeeder::class,
+            AturanPakaiSeeder::class,
+            ObatAlkesSeeder::class,
         ]);
     }
 }
