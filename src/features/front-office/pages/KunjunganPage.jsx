@@ -63,6 +63,13 @@ function nowLocalDatetime() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+/** Tanggal lokal (bukan UTC) — hindari salah tanggal di WIB */
+function todayLocal() {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 function hitungUmur(tanggalLahir) {
   if (!tanggalLahir) return ''
   const lahir = new Date(tanggalLahir)
@@ -106,7 +113,7 @@ export default function KunjunganPage({ tipeKunjungan = 'rawat_jalan' }) {
   const navigate = useNavigate()
   const [kunjunganHariIni, setKunjunganHariIni] = useState([])
   const [todayLoading, setTodayLoading] = useState(false)
-  const [filterDate, setFilterDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [filterDate, setFilterDate] = useState(() => todayLocal())
 
   const [editTarget, setEditTarget] = useState(null)
   const [editForm, setEditForm] = useState({
@@ -359,7 +366,10 @@ export default function KunjunganPage({ tipeKunjungan = 'rawat_jalan' }) {
       setSavedKunjungan(created)
       toast('Kunjungan berhasil didaftarkan', 'success')
       setCreateModalOpen(false)
-      await loadKunjunganHariIni()
+      // Tampilkan daftar pada tanggal kunjungan yang baru dibuat
+      const tglKunjungan = (payload.tgl_jam_kunjungan || '').slice(0, 10)
+      if (tglKunjungan) setFilterDate(tglKunjungan)
+      await loadKunjunganHariIni(tglKunjungan || filterDate)
       await fetchNomor()
       handleReset(false)
     } catch (err) {
@@ -664,7 +674,7 @@ export default function KunjunganPage({ tipeKunjungan = 'rawat_jalan' }) {
                 />
                 <button
                   type="button"
-                  onClick={() => setFilterDate(new Date().toISOString().slice(0, 10))}
+                  onClick={() => setFilterDate(todayLocal())}
                   className="btn btn-ghost btn-sm shrink-0"
                   title="Reset ke hari ini"
                 >

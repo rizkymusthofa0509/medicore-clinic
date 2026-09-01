@@ -81,6 +81,13 @@ function nowLocalDatetime() {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
+/** Tanggal lokal (bukan UTC) — hindari salah tanggal di WIB */
+function todayLocal() {
+  const d = new Date()
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
 function InfoRow({ label, value, mono }) {
   return (
     <div className="flex justify-between gap-2">
@@ -201,7 +208,7 @@ export default function PemeriksaanDokterPage({ tipeKunjungan = 'rawat_jalan' })
       setLoading(false)
       return
     }
-    const today = new Date().toISOString().slice(0, 10)
+    const today = todayLocal()
     Promise.all([
       fetchPoli(branchId),
       fetchKunjungan(branchId, {
