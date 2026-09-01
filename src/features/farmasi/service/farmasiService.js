@@ -30,3 +30,9 @@ export async function fetchMutasiStok(branchId, params = {}) {
   const res = await api.get('/api/farmasi/stok', { params: { branch_id: branchId, ...params } })
   return res.data?.data ?? []
 }
+
+/** POST /api/farmasi/stok/mutasi — stok masuk/keluar/penyesuaian manual. */
+export async function createMutasiStok(branchId, payload) {
+  const res = await api.post('/api/farmasi/stok/mutasi', { branch_id: branchId, ...payload })
+  return res.data
+}

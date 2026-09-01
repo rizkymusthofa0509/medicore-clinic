@@ -9,7 +9,8 @@ import { useEffect, useState } from 'react'
 import { Card, Badge, Btn, Input, Spinner, Select, EmptyState } from '../../../shared/components/ui.jsx'
 import { getCurrentBranchId } from '../../../shared/store/clinic.js'
 import { fetchBranches } from '../../../shared/branches.js'
-import { fetchResep, dispenseResep, batalkanResep, fetchMutasiStok } from '../service/farmasiService.js'
+import { fetchObatAlkes } from '../../master/service/obatAlkesService.js'
+import { fetchResep, dispenseResep, batalkanResep, fetchMutasiStok, createMutasiStok } from '../service/farmasiService.js'
 
 const FARMASI_LABEL = { menunggu: 'Menunggu Verifikasi', dispensed: 'Didispensasi', dibatalkan: 'Dibatalkan' }
 const FARMASI_TONE = { menunggu: 'warning', dispensed: 'success', dibatalkan: 'neutral' }
@@ -34,11 +35,12 @@ function fmtTanggal(v) {
 
 export default function FarmasiPage() {
   const [branchId, setBranchId] = useState(() => getCurrentBranchId())
-  const [tab, setTab] = useState('resep') // 'resep' | 'mutasi'
+  const [tab, setTab] = useState('resep') // 'resep' | 'mutasi' | 'inventaris'
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [resep, setResep] = useState([])
   const [mutasi, setMutasi] = useState([])
+  const [obatList, setObatList] = useState([])
   const [branchName, setBranchName] = useState('-')
 
   const [detail, setDetail] = useState(null) // resep yang dipilih untuk dispense
@@ -46,6 +48,11 @@ export default function FarmasiPage() {
   const [processing, setProcessing] = useState(false)
   const [filterStatus, setFilterStatus] = useState('menunggu')
   const [filterTipe, setFilterTipe] = useState('')
+
+  // Modal mutasi stok manual
+  const [mutasiOpen, setMutasiOpen] = useState(false)
+  const [mutasiForm, setMutasiForm] = useState({ obat_alkes_id: '', tipe: 'masuk', qty: 1, harga_satuan: '', keterangan: '' })
+  const [savingMutasi, setSavingMutasi] = useState(false)
 
   useEffect(() => {
     const onBranch = () => setBranchId(getCurrentBranchId())
@@ -79,7 +86,44 @@ export default function FarmasiPage() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => { tab === 'resep' ? loadResep() : loadMutasi() }, [branchId, tab, filterStatus, filterTipe])
+  const loadInventaris = () => {
+    if (!branchId) return
+    setLoading(true); setError('')
+    fetchObatAlkes(branchId, {})
+      .then(setObatList)
+      .catch((e) => setError(e?.response?.data?.message || 'Gagal memuat inventaris'))
+      .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    if (tab === 'resep') loadResep()
+    else if (tab === 'mutasi') loadMutasi()
+    else loadInventaris()
+  }, [branchId, tab, filterStatus, filterTipe])
+
+  const openMutasi = (obat) => {
+    setMutasiForm({ obat_alkes_id: obat?.id || '', tipe: 'masuk', qty: 1, harga_satuan: obat?.hargaJual ?? '', keterangan: '' })
+    setMutasiOpen(true)
+  }
+
+  const saveMutasi = async () => {
+    if (!mutasiForm.obat_alkes_id || !mutasiForm.qty || mutasiForm.qty < 1 || savingMutasi) return
+    setSavingMutasi(true); setError('')
+    try {
+      const res = await createMutasiStok(branchId, {
+        obat_alkes_id: mutasiForm.obat_alkes_id,
+        tipe: mutasiForm.tipe,
+        qty: Number(mutasiForm.qty),
+        harga_satuan: mutasiForm.harga_satuan ? Number(mutasiForm.harga_satuan) : undefined,
+        keterangan: mutasiForm.keterangan,
+      })
+      if (!res.success) throw new Error(res.message || 'Gagal mutasi stok')
+      setMutasiOpen(false)
+      loadInventaris(); loadMutasi()
+    } catch (e) {
+      setError(e.message || 'Gagal memproses mutasi')
+    } finally { setSavingMutasi(false) }
+  }
 
   const openDetail = (row) => { setDetail(row); setCatatan('') }
   const closeDetail = () => { setDetail(null); setCatatan('') }
@@ -137,6 +181,9 @@ export default function FarmasiPage() {
         </button>
         <button className={`btn btn-sm ${tab === 'mutasi' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('mutasi')}>
           Mutasi Stok
+        </button>
+        <button className={`btn btn-sm ${tab === 'inventaris' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('inventaris')}>
+          Inventaris Obat ({obatList.length})
         </button>
       </div>
 
@@ -259,6 +306,96 @@ export default function FarmasiPage() {
             )}
           </Card>
         </>
+      )}
+
+      {tab === 'inventaris' && (
+        <>
+          <Card className="p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-[var(--text-secondary)]">Daftar obat &amp; alkes — stok realtime per branch</p>
+              <div className="flex gap-2">
+                <Btn variant="secondary" size="sm" onClick={loadInventaris} disabled={loading}>Muat Ulang</Btn>
+                <Btn variant="primary" size="sm" onClick={() => openMutasi(null)}>+ Mutasi Stok</Btn>
+              </div>
+            </div>
+          </Card>
+
+          <Card className="overflow-hidden">
+            {loading ? (
+              <div className="flex items-center gap-2 p-6 text-sm text-[var(--text-tertiary)]"><Spinner size="sm" /> Memuat inventaris…</div>
+            ) : obatList.length === 0 ? (
+              <EmptyState title="Belum ada obat" desc="Tambahkan obat melalui menu Data Master → Obat, Alkes & PBF." />
+            ) : (
+              <div className="table-container" style={{ borderRadius: 0, border: 'none' }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Nama</th><th>Kategori</th><th>Satuan</th>
+                      <th className="text-right">Stok</th><th className="text-right">Harga Jual</th><th>Status</th><th className="w-28 text-center">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {obatList.map((o) => {
+                      const stok = Number(o.stok) || 0
+                      const kritis = stok <= 10
+                      return (
+                        <tr key={o.id}>
+                          <td className="font-medium text-[var(--text-primary)]">{o.nama}</td>
+                          <td><Badge tone="neutral">{o.kategori}</Badge></td>
+                          <td className="text-[var(--text-secondary)]">{o.satuanTerkecil || '-'}</td>
+                          <td className={`text-right font-mono font-semibold ${kritis ? 'text-[var(--status-danger)]' : 'text-[var(--text-primary)]'}`}>{fmtNum(stok)}</td>
+                          <td className="text-right font-mono text-[var(--text-secondary)]">{fmtCurrency(o.hargaJual)}</td>
+                          <td>{kritis ? <Badge tone="danger">Kritis</Badge> : <Badge tone="success">Normal</Badge>}</td>
+                          <td className="text-center"><Btn size="sm" variant="secondary" onClick={() => openMutasi(o)}>Mutasi</Btn></td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </>
+      )}
+
+      {/* === Modal mutasi stok manual === */}
+      {mutasiOpen && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-xl">
+            <div className="flex items-center justify-between border-b border-[var(--border-primary)] px-5 py-3">
+              <h2 className="text-heading-md font-bold text-[var(--text-primary)]">Mutasi Stok</h2>
+              <Btn size="sm" variant="ghost" onClick={() => setMutasiOpen(false)}>✕</Btn>
+            </div>
+            <div className="space-y-4 p-5">
+              <Select
+                label="Obat / Alkes"
+                value={mutasiForm.obat_alkes_id}
+                onChange={(v) => setMutasiForm((s) => ({ ...s, obat_alkes_id: v }))}
+                placeholder="Pilih obat…"
+                options={obatList.map((o) => ({ value: o.id, label: `${o.nama} (stok ${o.stok})` }))}
+              />
+              <Select
+                label="Tipe Mutasi"
+                value={mutasiForm.tipe}
+                onChange={(v) => setMutasiForm((s) => ({ ...s, tipe: v }))}
+                options={[
+                  { value: 'masuk', label: 'Stok Masuk' },
+                  { value: 'keluar', label: 'Stok Keluar' },
+                  { value: 'penyesuaian', label: 'Penyesuaian' },
+                ]}
+              />
+              <Input label="Jumlah" type="number" min={1} value={mutasiForm.qty} onChange={(v) => setMutasiForm((s) => ({ ...s, qty: Number(v) }))} />
+              <Input label="Harga Satuan (Rp, opsional)" type="number" min={0} value={mutasiForm.harga_satuan} onChange={(v) => setMutasiForm((s) => ({ ...s, harga_satuan: v }))} />
+              <Input label="Keterangan" type="text" placeholder="mis. pembelian supplier, retur, stok opname…" value={mutasiForm.keterangan} onChange={(v) => setMutasiForm((s) => ({ ...s, keterangan: v }))} />
+            </div>
+            <div className="flex items-center justify-end gap-3 border-t border-[var(--border-primary)] px-5 py-3">
+              <Btn size="sm" variant="ghost" onClick={() => setMutasiOpen(false)}>Batal</Btn>
+              <Btn size="sm" variant="success" onClick={saveMutasi} disabled={savingMutasi || !mutasiForm.obat_alkes_id}>
+                {savingMutasi ? 'Menyimpan…' : 'Simpan Mutasi'}
+              </Btn>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* === Modal detail / dispense === */}
