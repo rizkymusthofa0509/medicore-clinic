@@ -222,6 +222,62 @@ class FarmasiController extends Controller
     }
 
     /**
+     * POST /api/farmasi/stok/mutasi
+     * Stok masuk / keluar / penyesuaian manual.
+     * Body: branch_id, obat_alkes_id, tipe(masuk|keluar|penyesuaian), qty, harga_satuan?, keterangan?
+     */
+    public function mutasiStok(Request $request)
+    {
+        $validated = $request->validate([
+            'branch_id' => 'required|integer|exists:branches,id',
+            'obat_alkes_id' => 'required|integer|exists:obat_alkes,id',
+            'tipe' => 'required|in:masuk,keluar,penyesuaian',
+            'qty' => 'required|integer|min:1',
+            'harga_satuan' => 'nullable|integer|min:0',
+            'keterangan' => 'nullable|string|max:500',
+        ]);
+
+        $branchId = (int) $validated['branch_id'];
+
+        // Pastikan obat milik branch yang sama (anti-IDOR)
+        $obat = ObatAlkes::forBranch($branchId)->findOrFail($validated['obat_alkes_id']);
+
+        $qty = (int) $validated['qty'];
+        $stokSebelum = (int) $obat->stok;
+
+        if (in_array($validated['tipe'], ['keluar', 'penyesuaian'], true) && $qty > $stokSebelum) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Stok tidak cukup untuk mutasi keluar/penyesuaian (stok: ' . $stokSebelum . ')',
+            ], 422);
+        }
+
+        $delta = in_array($validated['tipe'], ['masuk', 'penyesuaian'], true) ? $qty : -$qty;
+        $stokSesudah = max(0, $stokSebelum + $delta);
+
+        DB::transaction(function () use ($obat, $branchId, $validated, $qty, $stokSebelum, $stokSesudah) {
+            $obat->update(['stok' => $stokSesudah]);
+
+            StokMutasi::create([
+                'branch_id' => $branchId,
+                'obat_alkes_id' => $obat->id,
+                'tipe' => $validated['tipe'],
+                'qty' => $qty,
+                'stok_sebelum' => $stokSebelum,
+                'stok_sesudah' => $stokSesudah,
+                'harga_satuan' => $validated['harga_satuan'] ?? 0,
+                'keterangan' => $validated['keterangan'] ?? null,
+                'created_by' => Auth::id(),
+            ]);
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Mutasi stok berhasil: ' . $obat->nama . ' (' . $stokSebelum . ' → ' . $stokSesudah . ')',
+        ]);
+    }
+
+    /**
      * Transform resep → FE (camelCase, include pemberian_obat + status farmasi).
      */
     private function transformResep(PemeriksaanDokter $pd): array

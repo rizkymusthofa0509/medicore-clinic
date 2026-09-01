@@ -183,5 +183,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/resep/{id}/dispense', [FarmasiController::class, 'dispense']);
         Route::post('/resep/{id}/batalkan', [FarmasiController::class, 'batalkan']);
         Route::get('/stok', [FarmasiController::class, 'stok']);
+        Route::post('/stok/mutasi', [FarmasiController::class, 'mutasiStok']);
     });
 });
