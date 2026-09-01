@@ -9,6 +9,7 @@ import PendaftaranPage from './features/front-office/pages/PendaftaranPage.jsx'
 import DatabasePasienPage from './features/front-office/pages/DatabasePasienPage.jsx'
 import LaporanKunjunganPage from './features/laporan/pages/LaporanKunjunganPage.jsx'
 import PendapatanPage from './features/laporan/pages/PendapatanPage.jsx'
+import CetakSuratPage from './features/laporan/pages/CetakSuratPage.jsx'
 import KunjunganPage from './features/front-office/pages/KunjunganPage.jsx'
 import KunjunganTtvPage from './features/front-office/pages/KunjunganTtvPage.jsx'
 import NursingAssessmentPage from './features/front-office/pages/NursingAssessmentPage.jsx'
@@ -178,7 +179,7 @@ export default function App() {
         <Route path="/jasa-medis" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
         <Route path="/penjualan-obat" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
         <Route path="/penjualan-langsung" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
-        <Route path="/cetak-surat" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
+        <Route path="/cetak-surat" element={<Protected><AppShell><CetakSuratPage /></AppShell></Protected>} />
         <Route path="/top-diagnosa" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
         <Route path="/kunjungan-terhapus" element={<Protected><AppShell><ComingSoon /></AppShell></Protected>} />
 
