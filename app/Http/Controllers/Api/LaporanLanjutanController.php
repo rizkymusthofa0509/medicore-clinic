@@ -71,7 +71,9 @@ class LaporanLanjutanController extends Controller
             $poliKey = mb_strtolower($poliNama);
 
             $tindakan = 0.0;
-            foreach ($pd->pemberian_tindakan ?? [] as $r) {
+            // Normalisasi { rows: [...] } → array langsung
+            $rows = fn ($v) => is_array($v) && array_key_exists('rows', $v) ? ($v['rows'] ?? []) : ($v ?? []);
+            foreach ($rows($pd->pemberian_tindakan) as $r) {
                 $tindakan += (float) ($r['biaya'] ?? 0) * (int) ($r['jumlah'] ?? 1);
             }
 
@@ -160,8 +162,10 @@ class LaporanLanjutanController extends Controller
 
         // Diagnosa terbanyak (dari catatan pemeriksaan)
         $diagnosaCount = [];
+        // Normalisasi { rows: [...] } → array langsung
+        $rows = fn ($v) => is_array($v) && array_key_exists('rows', $v) ? ($v['rows'] ?? []) : ($v ?? []);
         foreach ($exams as $pd) {
-            foreach ($pd->catatan ?? [] as $c) {
+            foreach ($rows($pd->catatan) as $c) {
                 $d = trim((string) ($c['diagnosa'] ?? ''));
                 if ($d === '') continue;
                 $key = mb_strtolower($d);
@@ -188,8 +192,10 @@ class LaporanLanjutanController extends Controller
     private function topDiagnosa($exams): array
     {
         $count = [];
+        // Normalisasi { rows: [...] } → array langsung
+        $rows = fn ($v) => is_array($v) && array_key_exists('rows', $v) ? ($v['rows'] ?? []) : ($v ?? []);
         foreach ($exams as $pd) {
-            foreach ($pd->catatan ?? [] as $c) {
+            foreach ($rows($pd->catatan) as $c) {
                 $d = trim((string) ($c['diagnosa'] ?? ''));
                 if ($d === '') continue;
                 $key = mb_strtolower($d);

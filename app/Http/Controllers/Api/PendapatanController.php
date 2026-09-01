@@ -116,7 +116,7 @@ class PendapatanController extends Controller
                 }
             }
 
-            foreach ($exam->pemberian_obat_racik ?? [] as $row) {
+            foreach ($rows($exam->pemberian_obat_racik) as $row) {
                 $racikItems[] = [
                     'jumlahKemasan' => (int) ($row['jumlahKemasan'] ?? 0),
                     'aturanPakai' => $row['aturanPakai'] ?? '-',

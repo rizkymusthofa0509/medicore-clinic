@@ -90,7 +90,9 @@ class FarmasiController extends Controller
         }
 
         $masalah = [];
-        $items = $pd->pemberian_obat ?? [];
+        // Normalisasi { rows: [...] } → array langsung (data lama dari form dokter)
+        $rows = fn ($v) => is_array($v) && array_key_exists('rows', $v) ? ($v['rows'] ?? []) : ($v ?? []);
+        $items = $rows($pd->pemberian_obat);
 
         DB::transaction(function () use ($pd, $items, $branchId, $validated, &$masalah) {
             foreach ($items as $row) {

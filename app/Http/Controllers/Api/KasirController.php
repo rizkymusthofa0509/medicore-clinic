@@ -34,7 +34,7 @@ class KasirController extends Controller
                 $obat += $nilai;
                 $obatItems[] = ['nama' => trim((string) ($r['namaObat'] ?? 'Obat')), 'satuan' => $r['satuan'] ?? '-', 'jumlah' => $jumlah, 'harga' => $harga, 'nilai' => $nilai, 'dokter' => $r['dokter'] ?? null];
             }
-            foreach ($pd->pemberian_obat_racik ?? [] as $r) {
+            foreach ($rows($pd->pemberian_obat_racik) as $r) {
                 $racikItems[] = ['jumlahKemasan' => (int) ($r['jumlahKemasan'] ?? 0), 'aturanPakai' => $r['aturanPakai'] ?? '-', 'detail' => $r['detail'] ?? '-'];
             }
             foreach ($rows($pd->pemberian_tindakan) as $r) {
