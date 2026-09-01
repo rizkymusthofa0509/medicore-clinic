@@ -128,7 +128,7 @@ function Section({ title, defaultOpen = false, dot = false, invalid = false, chi
   )
 }
 
-export default function PemeriksaanDokterPage() {
+export default function PemeriksaanDokterPage({ tipeKunjungan = 'rawat_jalan' }) {
   const branchId = getCurrentBranchId()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -205,7 +205,7 @@ export default function PemeriksaanDokterPage() {
     Promise.all([
       fetchPoli(branchId),
       fetchKunjungan(branchId, {
-        tipe: 'rawat_jalan',
+        tipe: tipeKunjungan,
         date_from: today,
         date_to: today,
       }),

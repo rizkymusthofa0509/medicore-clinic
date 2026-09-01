@@ -87,7 +87,7 @@ const STATUS_BADGE = {
   batal: 'danger',
 }
 
-export default function KunjunganPage() {
+export default function KunjunganPage({ tipeKunjungan = 'rawat_jalan' }) {
   const [branchId, setBranchId] = useState(() => getCurrentBranchId())
   const [form, setForm] = useState(() => ({ ...INITIAL_FORM, tglJamKunjungan: nowLocalDatetime() }))
   const [errors, setErrors] = useState({})
@@ -206,7 +206,7 @@ export default function KunjunganPage() {
       const data = await fetchKunjungan(branchId, {
         date_from: date,
         date_to: date,
-        tipe: 'rawat_jalan',
+        tipe: tipeKunjungan,
         limit: 100,
       })
       setKunjunganHariIni(data)
@@ -221,7 +221,7 @@ export default function KunjunganPage() {
   const fetchNomor = async () => {
     if (!branchId) return
     try {
-      const nomor = await fetchNextNomorKunjungan(branchId, 'rawat_jalan')
+      const nomor = await fetchNextNomorKunjungan(branchId, tipeKunjungan)
       setForm((prev) => ({ ...prev, nomorPendaftaran: nomor || '' }))
     } catch (err) {
       console.error('[Kunjungan] Gagal mengambil nomor:', err)
@@ -333,7 +333,7 @@ export default function KunjunganPage() {
         branch_id: Number(branchId),
         pasien_id: form.namaPasien.id,
         no_pendaftaran: form.nomorPendaftaran || undefined,
-        tipe_kunjungan: 'rawat_jalan',
+        tipe_kunjungan: tipeKunjungan,
         jenis_kunjungan: form.jenisKunjungan,
         tgl_jam_kunjungan: form.tglJamKunjungan.replace('T', ' ') + ':00',
         poli_id: form.poliId ? Number(form.poliId) : null,
@@ -838,7 +838,7 @@ export default function KunjunganPage() {
                   </div>
                   <div>
                     <label className="label">Tipe Kunjungan</label>
-                    <input type="text" value={editForm.tipeKunjungan === 'rawat_jalan' ? 'Rawat Jalan' : 'Rawat Inap'} disabled className="input bg-[var(--bg-tertiary)]" />
+                    <input type="text" value={editForm.tipeKunjungan === 'rawat_inap' ? 'Rawat Inap' : 'Rawat Jalan'} disabled className="input bg-[var(--bg-tertiary)]" />
                   </div>
                 </div>
               </fieldset>

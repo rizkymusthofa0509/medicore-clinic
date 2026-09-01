@@ -20,7 +20,9 @@ import FarmasiPage from './features/farmasi/pages/FarmasiPage.jsx'
 import PenjualanLangsungPage from './features/farmasi/pages/PenjualanLangsungPage.jsx'
 import LaboratoriumPage from './features/farmasi/pages/LaboratoriumPage.jsx'
 import LaporanSisaPage from './features/laporan/pages/LaporanSisaPage.jsx'
-import RawatInapPage from './features/front-office/pages/RawatInapPage.jsx'
+import RawatInapKunjunganPage from './features/front-office/pages/RawatInapKunjunganPage.jsx'
+import RawatInapPemeriksaanPage from './features/front-office/pages/RawatInapPemeriksaanPage.jsx'
+import RawatInapFarmasiPage from './features/farmasi/pages/RawatInapFarmasiPage.jsx'
 import DepoObatPage from './features/master/pages/DepoObatPage.jsx'
 import UnitLokasiPage from './features/master/pages/UnitLokasiPage.jsx'
 import TindakanPage from './features/master/pages/TindakanPage.jsx'
@@ -107,12 +109,12 @@ export default function App() {
         <Route path="/janji-kunjungan" element={<Navigate to="/pendaftaran-lama" replace />} />
 
         {/* Rawat Inap (Top Level) */}
-        <Route path="/rawat-inap/pendaftaran-baru" element={<Protected><AppShell><RawatInapPage /></AppShell></Protected>} />
-        <Route path="/rawat-inap/pendaftaran-lama" element={<Protected><AppShell><RawatInapPage /></AppShell></Protected>} />
-        <Route path="/rawat-inap/laporan-kunjungan" element={<Protected><AppShell><RawatInapPage /></AppShell></Protected>} />
-        <Route path="/rawat-inap/pemeriksaan-dokter" element={<Protected><AppShell><RawatInapPage /></AppShell></Protected>} />
-        <Route path="/rawat-inap/verifikasi-farmasi" element={<Protected><AppShell><RawatInapPage /></AppShell></Protected>} />
-        <Route path="/rawat-inap/janji-kunjungan" element={<Protected><AppShell><RawatInapPage /></AppShell></Protected>} />
+        <Route path="/rawat-inap/pendaftaran-baru" element={<Protected><AppShell><PendaftaranPage /></AppShell></Protected>} />
+        <Route path="/rawat-inap/pendaftaran-lama" element={<Protected><AppShell><RawatInapKunjunganPage /></AppShell></Protected>} />
+        <Route path="/rawat-inap/laporan-kunjungan" element={<Navigate to="/kunjungan?tipe=rawat_inap" replace />} />
+        <Route path="/rawat-inap/pemeriksaan-dokter" element={<Protected><AppShell><RawatInapPemeriksaanPage /></AppShell></Protected>} />
+        <Route path="/rawat-inap/verifikasi-farmasi" element={<Protected><AppShell><RawatInapFarmasiPage /></AppShell></Protected>} />
+        <Route path="/rawat-inap/janji-kunjungan" element={<Navigate to="/rawat-inap/pendaftaran-lama" replace />} />
 
         {/* Laporan (Top Level) */}
         <Route path="/kunjungan" element={<Protected><AppShell><LaporanKunjunganPage /></AppShell></Protected>} />

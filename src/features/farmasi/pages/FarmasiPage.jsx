@@ -34,7 +34,7 @@ function fmtTanggal(v) {
     d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
 }
 
-export default function FarmasiPage() {
+export default function FarmasiPage({ tipeKunjungan = '' }) {
   const [branchId, setBranchId] = useState(() => getCurrentBranchId())
   const [tab, setTab] = useState('resep') // 'resep' | 'mutasi' | 'inventaris'
   const [loading, setLoading] = useState(false)
@@ -72,7 +72,7 @@ export default function FarmasiPage() {
   const loadResep = () => {
     if (!branchId) return
     setLoading(true); setError('')
-    fetchResep(branchId, { status: filterStatus || '' })
+    fetchResep(branchId, { status: filterStatus || '', tipe: tipeKunjungan || undefined })
       .then(setResep)
       .catch((e) => setError(e?.response?.data?.message || 'Gagal memuat resep'))
       .finally(() => setLoading(false))
