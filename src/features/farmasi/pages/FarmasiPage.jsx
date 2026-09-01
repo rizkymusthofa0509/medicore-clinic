@@ -6,7 +6,8 @@
 
 import { useEffect, useState } from 'react'
 
-import { Card, Badge, Btn, Input, Spinner, Select, EmptyState } from '../../../shared/components/ui.jsx'
+import { Card, Badge, Btn, Input, Spinner, EmptyState } from '../../../shared/components/ui.jsx'
+import SelectSearch from '../../../shared/components/SelectSearch.jsx'
 import { getCurrentBranchId } from '../../../shared/store/clinic.js'
 import { fetchBranches } from '../../../shared/branches.js'
 import { fetchObatAlkes } from '../../master/service/obatAlkesService.js'
@@ -193,7 +194,7 @@ export default function FarmasiPage() {
         <>
           <Card className="p-3.5">
             <div className="flex flex-wrap items-end gap-3">
-              <Select
+              <SelectSearch
                 label="Status"
                 value={filterStatus}
                 onChange={setFilterStatus}
@@ -256,7 +257,7 @@ export default function FarmasiPage() {
         <>
           <Card className="p-3.5">
             <div className="flex flex-wrap items-end gap-3">
-              <Select
+              <SelectSearch
                 label="Tipe Mutasi"
                 value={filterTipe}
                 onChange={setFilterTipe}
@@ -367,14 +368,14 @@ export default function FarmasiPage() {
               <Btn size="sm" variant="ghost" onClick={() => setMutasiOpen(false)}>✕</Btn>
             </div>
             <div className="space-y-4 p-5">
-              <Select
+              <SelectSearch
                 label="Obat / Alkes"
                 value={mutasiForm.obat_alkes_id}
                 onChange={(v) => setMutasiForm((s) => ({ ...s, obat_alkes_id: v }))}
-                placeholder="Pilih obat…"
-                options={obatList.map((o) => ({ value: o.id, label: `${o.nama} (stok ${o.stok})` }))}
+                placeholder="Ketik nama obat…"
+                options={obatList.map((o) => ({ value: o.id, label: o.nama, sub: `stok ${o.stok}` }))}
               />
-              <Select
+              <SelectSearch
                 label="Tipe Mutasi"
                 value={mutasiForm.tipe}
                 onChange={(v) => setMutasiForm((s) => ({ ...s, tipe: v }))}

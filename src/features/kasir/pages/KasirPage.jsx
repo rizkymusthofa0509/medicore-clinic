@@ -7,6 +7,7 @@
 import { useEffect, useState } from 'react'
 
 import { Card, Badge, Btn, Input, Spinner } from '../../../shared/components/ui.jsx'
+import SelectSearch from '../../../shared/components/SelectSearch.jsx'
 import { getCurrentBranchId } from '../../../shared/store/clinic.js'
 import { fetchBranches } from '../../../shared/branches.js'
 import { fetchTagihan, bayarTagihan } from '../service/kasirService.js'
@@ -255,11 +256,12 @@ export default function KasirPage() {
                   )}
                 </div>
                 <div>
-                  <label className="label">Metode Pembayaran</label>
-                  <select className="input" value={selected.bayarForm?.metode_pembayaran ?? 'tunai'}
-                    onChange={(e) => setSelected({ ...selected, bayarForm: { ...(selected.bayarForm || {}), metode_pembayaran: e.target.value } })}>
-                    {METODE.map((m) => <option key={m} value={m}>{METODE_LABEL[m]}</option>)}
-                  </select>
+                  <SelectSearch
+                    label="Metode Pembayaran"
+                    value={selected.bayarForm?.metode_pembayaran ?? 'tunai'}
+                    onChange={(v) => setSelected({ ...selected, bayarForm: { ...(selected.bayarForm || {}), metode_pembayaran: v } })}
+                    options={METODE.map((m) => ({ value: m, label: METODE_LABEL[m] }))}
+                  />
                 </div>
               </div>
               <div>

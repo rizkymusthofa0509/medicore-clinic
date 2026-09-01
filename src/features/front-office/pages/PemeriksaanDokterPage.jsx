@@ -280,6 +280,13 @@ export default function PemeriksaanDokterPage() {
     }
   }
 
+  /** Normalisasi section: backend bisa kirim array langsung atau { rows: [...] } */
+  const sectionRows = (v) => {
+    if (Array.isArray(v)) return v
+    if (v && Array.isArray(v.rows)) return v.rows
+    return []
+  }
+
   /** Gabungkan data tersimpan (BE) ke base seed */
   const applySaved = (base, saved) => {
     const fisikMap = new Map((saved?.pemeriksaanFisik || []).map((r) => [r.label, r]))
@@ -303,14 +310,14 @@ export default function PemeriksaanDokterPage() {
         fisikMap.get(row.label) || row
       ),
       anatomi: saved?.anatomi || [],
-      riwayatAlergi: saved?.riwayatAlergi?.rows || [],
-      riwayatObat: saved?.riwayatObat?.rows || [],
-      riwayatPenyakit: saved?.riwayatPenyakit?.rows || [],
-      diagnosa: saved?.diagnosa?.rows || [],
-      pemberianObat: saved?.pemberianObat?.rows || [],
-      pemberianObatRacik: saved?.pemberianObatRacik?.rows || [],
-      pemberianTindakan: saved?.pemberianTindakan?.rows || [],
-      catatan: saved?.catatan?.rows || [],
+      riwayatAlergi: sectionRows(saved?.riwayatAlergi),
+      riwayatObat: sectionRows(saved?.riwayatObat),
+      riwayatPenyakit: sectionRows(saved?.riwayatPenyakit),
+      diagnosa: sectionRows(saved?.diagnosa),
+      pemberianObat: sectionRows(saved?.pemberianObat),
+      pemberianObatRacik: sectionRows(saved?.pemberianObatRacik),
+      pemberianTindakan: sectionRows(saved?.pemberianTindakan),
+      catatan: sectionRows(saved?.catatan),
     }
   }
 
@@ -1620,7 +1627,7 @@ export default function PemeriksaanDokterPage() {
                 <p className="text-tiny font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-2">
                   Pemberian Obat
                 </p>
-                {(!detailExam.pemberianObat?.rows || detailExam.pemberianObat.rows.length === 0) ? (
+                {(!detailExam.pemberianObat || (Array.isArray(detailExam.pemberianObat) ? detailExam.pemberianObat.length === 0 : !detailExam.pemberianObat.rows || detailExam.pemberianObat.rows.length === 0)) ? (
                   <p className="text-sm text-[var(--text-muted)]">Tidak ada pemberian obat.</p>
                 ) : (
                   <div className="overflow-x-auto border border-[var(--border-primary)] rounded-lg">
@@ -1634,7 +1641,7 @@ export default function PemeriksaanDokterPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {detailExam.pemberianObat.rows.map((o, i) => (
+                        {(Array.isArray(detailExam.pemberianObat) ? detailExam.pemberianObat : detailExam.pemberianObat.rows).map((o, i) => (
                           <tr key={o.id || i} className="border-b border-[var(--border-primary)] last:border-b-0">
                             <td className="py-2 px-3 text-[var(--text-primary)]">{o.namaObat || '-'}</td>
                             <td className="py-2 px-3 font-mono text-tiny">{fmtRupiah(o.harga)}</td>

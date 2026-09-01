@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react'
 
-import { Card, Badge, Btn, Input, Select, Spinner, EmptyState, Textarea } from '../../../shared/components/ui.jsx'
+import { Card, Badge, Btn, Input, Spinner, EmptyState, Textarea } from '../../../shared/components/ui.jsx'
+import SelectSearch from '../../../shared/components/SelectSearch.jsx'
 import { getCurrentBranchId } from '../../../shared/store/clinic.js'
 import { fetchBranches } from '../../../shared/branches.js'
 import { fetchKunjungan } from '../../front-office/service/kunjunganService.js'
@@ -121,15 +122,17 @@ export default function LaboratoriumPage() {
       <Card className="p-4">
         <p className="mb-3 text-caption font-medium text-[var(--text-tertiary)]">Permintaan Pemeriksaan Baru</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <div>
-            <label className="label">Kunjungan (selesai)</label>
-            <select className="input" value={form.kunjungan_id} onChange={(e) => setForm((s) => ({ ...s, kunjungan_id: e.target.value }))}>
-              <option value="">— Pilih pasien —</option>
-              {kunjunganList.map((k) => (
-                <option key={k.id} value={k.id}>{k.noPendaftaran} • {k.pasien?.nama} ({k.pasien?.noRm})</option>
-              ))}
-            </select>
-          </div>
+          <SelectSearch
+            label="Kunjungan (selesai)"
+            value={form.kunjungan_id}
+            onChange={(v) => setForm((s) => ({ ...s, kunjungan_id: v }))}
+            placeholder="Ketik nama / no. pendaftaran…"
+            options={kunjunganList.map((k) => ({
+              value: String(k.id),
+              label: `${k.noPendaftaran} • ${k.pasien?.nama || '-'}`,
+              sub: `RM ${k.pasien?.noRm || '-'}`,
+            }))}
+          />
           <Input label="Jenis Pemeriksaan" type="text" placeholder="mis. Darah Rutin, Urine, GDS…" value={form.jenis_pemeriksaan} onChange={(v) => setForm((s) => ({ ...s, jenis_pemeriksaan: v }))} />
           <div className="flex items-end">
             <Btn variant="primary" size="sm" onClick={simpan} disabled={saving || !form.kunjungan_id || !form.jenis_pemeriksaan.trim()}>
@@ -145,7 +148,7 @@ export default function LaboratoriumPage() {
       {/* Filter + daftar */}
       <Card className="p-3.5">
         <div className="flex flex-wrap items-end gap-3">
-          <Select
+          <SelectSearch
             label="Status"
             value={filterStatus}
             onChange={setFilterStatus}

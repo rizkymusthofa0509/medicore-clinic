@@ -5,7 +5,8 @@
 
 import { useEffect, useState } from 'react'
 
-import { Card, Badge, Btn, Input, Select, Spinner, EmptyState } from '../../../shared/components/ui.jsx'
+import { Card, Badge, Btn, Input, Spinner, EmptyState } from '../../../shared/components/ui.jsx'
+import SelectSearch from '../../../shared/components/SelectSearch.jsx'
 import { getCurrentBranchId } from '../../../shared/store/clinic.js'
 import { fetchBranches } from '../../../shared/branches.js'
 import { fetchObatAlkes } from '../../master/service/obatAlkesService.js'
@@ -100,15 +101,15 @@ export default function PenjualanLangsungPage() {
       <Card className="p-4">
         <p className="mb-3 text-caption font-medium text-[var(--text-tertiary)]">Transaksi Baru</p>
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Select
+          <SelectSearch
             label="Obat / Alkes"
             value={form.obat_alkes_id}
             onChange={(v) => setForm((s) => ({ ...s, obat_alkes_id: v }))}
-            placeholder="Pilih obat…"
-            options={obatList.map((o) => ({ value: o.id, label: `${o.nama} (stok ${o.stok} • ${fmtCurrency(o.hargaJual)})` }))}
+            placeholder="Ketik nama obat…"
+            options={obatList.map((o) => ({ value: o.id, label: o.nama, sub: `stok ${o.stok} • ${fmtCurrency(o.hargaJual)}` }))}
           />
           <Input label="Jumlah" type="number" min={1} value={form.qty} onChange={(v) => setForm((s) => ({ ...s, qty: Number(v) }))} />
-          <Select
+          <SelectSearch
             label="Metode Bayar"
             value={form.metode_pembayaran}
             onChange={(v) => setForm((s) => ({ ...s, metode_pembayaran: v }))}

@@ -7,7 +7,8 @@
 
 import { useEffect, useState } from 'react'
 
-import { Card, Badge, Btn, Input, Select, Spinner, EmptyState } from '../../../shared/components/ui.jsx'
+import { Card, Badge, Btn, Input, Spinner, EmptyState } from '../../../shared/components/ui.jsx'
+import SelectSearch from '../../../shared/components/SelectSearch.jsx'
 import { getCurrentBranchId } from '../../../shared/store/clinic.js'
 import { fetchBranches } from '../../../shared/branches.js'
 import { fetchKunjungan } from '../../front-office/service/kunjunganService.js'
@@ -239,21 +240,19 @@ export default function CetakSuratPage() {
 
       <Card className="p-4">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Select label="Jenis Dokumen" value={jenis} onChange={setJenis} options={JENIS.map((j) => ({ value: j.value, label: j.label }))} />
+          <SelectSearch label="Jenis Dokumen" value={jenis} onChange={setJenis} options={JENIS.map((j) => ({ value: j.value, label: j.label }))} />
           <div className="sm:col-span-2">
-            <label className="label">Pilih Kunjungan (status selesai)</label>
-            <select
-              className="input"
+            <SelectSearch
+              label="Pilih Kunjungan (status selesai)"
               value={selectedId}
-              onChange={(e) => { setSelectedId(e.target.value); setError('') }}
-            >
-              <option value="">— Pilih pasien —</option>
-              {kunjunganList.map((k) => (
-                <option key={k.id} value={k.id}>
-                  {k.noPendaftaran} • {k.pasien?.nama} ({k.pasien?.noRm}) • {fmtTanggal(k.tglJamKunjungan)}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => { setSelectedId(v); setError('') }}
+              placeholder="Ketik nama / no. pendaftaran…"
+              options={kunjunganList.map((k) => ({
+                value: String(k.id),
+                label: `${k.noPendaftaran} • ${k.pasien?.nama || '-'}`,
+                sub: `RM ${k.pasien?.noRm || '-'} • ${fmtTanggal(k.tglJamKunjungan)}`,
+              }))}
+            />
             {kunjunganList.length === 0 && (
               <p className="text-caption text-[var(--text-tertiary)] mt-1">Belum ada kunjungan selesai pada branch ini.</p>
             )}
