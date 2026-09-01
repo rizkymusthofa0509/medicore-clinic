@@ -429,7 +429,7 @@ function ColumnFilter({ column, rows, selected, onChange }) {
       </button>
       {open && (
         <div
-          className="absolute right-0 top-full mt-1 z-30 w-64 max-h-80 flex flex-col rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg"
+          className="absolute right-0 top-full mt-1 z-[99999] w-64 max-h-80 flex flex-col rounded-md border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-lg"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="border-b border-[var(--border-primary)] p-2">
@@ -706,20 +706,21 @@ export function toast(message, tone = 'success', duration = 3800) {
 export function ToastHost() {
   const [items, setItems] = useState([])
   useEffect(() => {
+    const timers = []
     registerToast((message, tone, duration) => {
       const id = Date.now() + Math.random()
-      setItems((prev) => [...prev, { id, message, tone }])
-      setTimeout(() => setItems((prev) => prev.filter((t) => t.id !== id)), duration)
+      setItems((prev) => [...prev, { id, message, tone, exiting: false }])
+      const remove = () => {
+        setItems((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)))
+        timers.push(setTimeout(() => {
+          setItems((prev) => prev.filter((t) => t.id !== id))
+        }, 300))
+      }
+      timers.push(setTimeout(remove, duration))
     })
-    return () => { registerToast(null) }
+    return () => { registerToast(null); timers.forEach(clearTimeout) }
   }, [])
 
-  const toneStyles = {
-    success: 'badge-solid',
-    error: 'badge-solid-danger',
-    info: 'badge-solid',
-    warning: 'badge-solid',
-  }
   const toneBg = {
     success: 'bg-[var(--status-success)] text-white',
     error: 'bg-[var(--status-danger)] text-white',
@@ -730,7 +731,7 @@ export function ToastHost() {
   return (
     <div className="pointer-events-none fixed inset-x-4 bottom-4 z-[100] flex flex-col gap-2 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:items-end">
       {items.map((t) => (
-        <div key={t.id} className={`pointer-events-auto toast-content text-body-sm ${toneBg[t.tone] || toneBg.success}`}>
+        <div key={t.id} className={`pointer-events-auto toast-content text-body-sm ${t.exiting ? 'toast-exit' : ''} ${toneBg[t.tone] || toneBg.success}`}>
           {t.tone === 'error' ? (
             <svg viewBox="0 0 24 24" className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4m0 4h.01" /></svg>
           ) : t.tone === 'warning' ? (

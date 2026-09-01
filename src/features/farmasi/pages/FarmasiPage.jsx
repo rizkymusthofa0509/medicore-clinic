@@ -1,576 +1,341 @@
-import { useState, useEffect } from 'react'
+// ============================================================
+// features/farmasi/pages/FarmasiPage.jsx
+// Farmasi — verifikasi & dispensing resep, riwayat mutasi stok.
+// Data aktual per branch aktif; stok otomatis berkurang saat dispense.
+// ============================================================
 
-import { Card, Badge, Btn, Input } from '../../../shared/components/ui.jsx'
-import {
-  getObatList,
-  getVisits,
-  updateKunjunganStatus,
-  updateObatStok,
-  addObat,
-  updateObatData,
-  getCurrentBranchId,
-  getBranches,
-} from '../../../shared/store/clinic.js'
+import { useEffect, useState } from 'react'
+
+import { Card, Badge, Btn, Input, Spinner, Select, EmptyState } from '../../../shared/components/ui.jsx'
+import { getCurrentBranchId } from '../../../shared/store/clinic.js'
+import { fetchBranches } from '../../../shared/branches.js'
+import { fetchResep, dispenseResep, batalkanResep, fetchMutasiStok } from '../service/farmasiService.js'
+
+const FARMASI_LABEL = { menunggu: 'Menunggu Verifikasi', dispensed: 'Didispensasi', dibatalkan: 'Dibatalkan' }
+const FARMASI_TONE = { menunggu: 'warning', dispensed: 'success', dibatalkan: 'neutral' }
+const TIPE_LABEL = { masuk: 'Masuk', keluar: 'Keluar', dispensing: 'Dispensing', opname: 'Opname', penyesuaian: 'Penyesuaian' }
+const TIPE_TONE = { masuk: 'success', keluar: 'danger', dispensing: 'info', opname: 'warning', penyesuaian: 'warning' }
+
+function fmtCurrency(v) {
+  return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(v) || 0)
+}
+
+function fmtNum(v) {
+  return new Intl.NumberFormat('id-ID').format(Number(v) || 0)
+}
+
+function fmtTanggal(v) {
+  if (!v) return '-'
+  const d = new Date(v)
+  if (Number.isNaN(d.getTime())) return String(v)
+  return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }) + ' ' +
+    d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+}
 
 export default function FarmasiPage() {
-  const branchId = getCurrentBranchId()
-  const [activeTab, setActiveTab] = useState('resep') // 'resep' | 'stok'
+  const [branchId, setBranchId] = useState(() => getCurrentBranchId())
+  const [tab, setTab] = useState('resep') // 'resep' | 'mutasi'
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [resep, setResep] = useState([])
+  const [mutasi, setMutasi] = useState([])
+  const [branchName, setBranchName] = useState('-')
 
-  // Resep masuk dari dokter
-  const [resepMasuk, setResepMasuk] = useState([])
+  const [detail, setDetail] = useState(null) // resep yang dipilih untuk dispense
+  const [catatan, setCatatan] = useState('')
+  const [processing, setProcessing] = useState(false)
+  const [filterStatus, setFilterStatus] = useState('menunggu')
+  const [filterTipe, setFilterTipe] = useState('')
 
-  // Stok obat
-  const [obatList, setObatList] = useState([])
-
-  // Form edit stok
-  const [formData, setFormData] = useState({
-    nama: '',
-    kategori: '',
-    stok: 0,
-    hargaBeli: 0,
-    hargaJual: 0,
-    stokMinimum: 0,
-    satuan: 'tablet',
-  })
-  const [formMode, setFormMode] = useState('browse') // 'browse' | 'add' | 'edit'
-  const [editingObatId, setEditingObatId] = useState(null)
-  const [formErrors, setFormErrors] = useState({})
-  const [saved, setSaved] = useState(false)
-
-  // Load
   useEffect(() => {
-    loadResep()
-    loadObat()
+    const onBranch = () => setBranchId(getCurrentBranchId())
+    window.addEventListener('branch:changed', onBranch)
+    return () => window.removeEventListener('branch:changed', onBranch)
+  }, [])
+
+  useEffect(() => {
+    if (!branchId) return
+    fetchBranches({ force: true }).then((list) => {
+      const b = list.find((x) => String(x.id) === String(branchId))
+      setBranchName(b?.name || b?.nama || `Branch ${branchId}`)
+    }).catch(() => {})
   }, [branchId])
 
   const loadResep = () => {
-    const visits = getVisits(branchId)
-    const resepList = []
-    visits.forEach(v => {
-      if (v.status === 'Diperiksa' || v.status === 'Apotek') {
-        // Cari rekam medis dari history
-        const allVisits = getVisits(branchId)
-        const visWithHistory = allVisits.find(av => av.id === v.id)
-        if (visWithHistory && visWithHistory.rekamMedis?.resep?.length > 0) {
-          visWithHistory.rekamMedis.resep.forEach(r => {
-            resepList.push({
-              kunjunganId: v.id,
-              noAntrean: v.noAntrean,
-              patientName: v.patient?.nama || '',
-              patientNoRM: v.patient?.noRM || '',
-              poliName: v.poli?.nama || '',
-              dokterName: v.dokter?.nama || '',
-              obatId: r.obatId,
-              dosis: r.dosis,
-              qty: r.qty,
-              status: v.status === 'Apotek' ? 'Siapkan Obat' : 'Belum',
-            })
-          })
-        }
-      }
-    })
-    setResepMasuk(resepList)
+    if (!branchId) return
+    setLoading(true); setError('')
+    fetchResep(branchId, { status: filterStatus || '' })
+      .then(setResep)
+      .catch((e) => setError(e?.response?.data?.message || 'Gagal memuat resep'))
+      .finally(() => setLoading(false))
   }
 
-  const loadObat = () => {
-    setObatList(getObatList(branchId))
+  const loadMutasi = () => {
+    if (!branchId) return
+    setLoading(true); setError('')
+    fetchMutasiStok(branchId, { tipe: filterTipe || '' })
+      .then(setMutasi)
+      .catch((e) => setError(e?.response?.data?.message || 'Gagal memuat mutasi stok'))
+      .finally(() => setLoading(false))
   }
 
-  const handleSiapkanObat = (kunjunganId) => {
-    const resep = resepMasuk.find(r => r.kunjunganId === kunjunganId)
-    if (!resep) return
-    // Kurangi stok obat
-    updateObatStok(resep.obatId, -resep.qty, `Pembagian resep: ${resep.dosis}`)
-    // Update status kunjungan
-    updateKunjunganStatus(kunjunganId, 'Apotek')
-    loadObat()
-    loadResep()
-    alert(`✅ Obat berhasil disiapkan. Stok ${getObatById(resep.obatId)?.nama} dikurangi ${resep.qty}.`)
+  useEffect(() => { tab === 'resep' ? loadResep() : loadMutasi() }, [branchId, tab, filterStatus, filterTipe])
+
+  const openDetail = (row) => { setDetail(row); setCatatan('') }
+  const closeDetail = () => { setDetail(null); setCatatan('') }
+
+  const doDispense = async () => {
+    if (!detail || processing) return
+    setProcessing(true); setError('')
+    try {
+      const res = await dispenseResep(branchId, detail.id, catatan)
+      if (!res.success) throw new Error(res.message || 'Gagal dispense')
+      closeDetail(); loadResep()
+    } catch (e) {
+      setError(e.message || 'Gagal memproses resep')
+    } finally { setProcessing(false) }
   }
 
-  const handleSelesai = (kunjunganId) => {
-    updateKunjunganStatus(kunjunganId, 'Selesai')
-    loadResep()
-    alert('✅ Pasien selesai mengambil obat.')
+  const doBatalkan = async () => {
+    if (!detail || processing) return
+    if (!window.confirm('Batalkan resep ini? Stok tidak akan berkurang.')) return
+    setProcessing(true); setError('')
+    try {
+      const res = await batalkanResep(branchId, detail.id, catatan || 'Dibatalkan petugas farmasi')
+      if (!res.success) throw new Error(res.message || 'Gagal batalkan')
+      closeDetail(); loadResep()
+    } catch (e) {
+      setError(e.message || 'Gagal membatalkan resep')
+    } finally { setProcessing(false) }
   }
 
-  const getObatById = (obatId) => obatList.find(o => o.id === obatId)
-
-  const handleEditStok = (obat) => {
-    setFormData({
-      nama: obat.nama,
-      kategori: obat.kategori,
-      stok: obat.stok,
-      hargaBeli: obat.hargaBeli,
-      hargaJual: obat.hargaJual,
-      stokMinimum: obat.stokMinimum,
-      satuan: obat.satuan,
-    })
-    setFormMode('edit')
-    setEditingObatId(obat.id)
-    setSaved(false)
+  const sumObat = (row) => {
+    const raw = row.pemberianObat || []
+    return raw.reduce((acc, o) => acc + (Number(o.harga) || 0) * (Number(o.jumlah) || 0), 0)
   }
 
-  const handleAddObat = () => {
-    setFormData({
-      nama: '',
-      kategori: '',
-      stok: 0,
-      hargaBeli: 0,
-      hargaJual: 0,
-      stokMinimum: 0,
-      satuan: 'tablet',
-    })
-    setFormMode('add')
-    setEditingObatId(null)
-    setSaved(false)
-  }
-
-  const validateForm = () => {
-    const errors = {}
-    if (!formData.nama.trim()) errors.nama = 'Nama obat wajib diisi'
-    if (!formData.kategori.trim()) errors.kategori = 'Kategori wajib diisi'
-    if (formData.stok < 0) errors.stok = 'Stok tidak boleh negatif'
-    if (formData.hargaBeli < 0) errors.hargaBeli = 'Harga beli tidak boleh negatif'
-    if (formData.hargaJual < 0) errors.hargaJual = 'Harga jual tidak boleh negatif'
-    if (formData.stokMinimum < 0) errors.stokMinimum = 'Stok minimum tidak boleh negatif'
-    return errors
-  }
-
-  const handleSimpan = () => {
-    const errors = validateForm()
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors)
-      return
-    }
-
-    if (formMode === 'add') {
-      addObat(formData)
-      setSaved(true)
-      loadObat()
-    } else if (formMode === 'edit') {
-      updateObatData(editingObatId, formData)
-      setSaved(true)
-      loadObat()
-    }
-    setFormMode('browse')
-  }
-
-  const formatRupiah = (val) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0)
-  }
+  const totalMenunggu = (resep || []).filter((r) => r.statusFarmasi === 'menunggu').length
+  const totalDispensed = (resep || []).filter((r) => r.statusFarmasi === 'dispensed').length
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="page-title">Farmasi & Stok Obat</h1>
-          <p className="page-desc">Manajemen resep & stok obat apotek</p>
+          <h1 className="text-2xl font-bold text-[var(--text-primary)]">Farmasi</h1>
+          <p className="text-sm text-[var(--text-muted)]">Verifikasi &amp; dispensing resep — branch: <b>{branchName}</b></p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-caption text-[var(--text-muted)]">Branch:</span>
-          <select
-            value={branchId}
-            onChange={e => {
-              // Update branch
-            }}
-            className="input input-sm flex-none w-48"
-          >
-            {getBranches().map(b => (
-              <option key={b.id} value={b.id}>{b.nama}</option>
-            ))}
-          </select>
+        <div className="flex gap-2">
+          <Badge tone="warning">{totalMenunggu} menunggu</Badge>
+          <Badge tone="success">{totalDispensed} didispensasi</Badge>
         </div>
       </div>
 
       {/* Tab */}
       <div className="flex gap-1 border-b border-[var(--border-primary)]">
-        <button
-          onClick={() => setActiveTab('resep')}
-          className={`btn btn-sm ${activeTab === 'resep' ? 'btn-primary' : 'btn-secondary'}`}
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
-          Resep Masuk ({resepMasuk.length})
+        <button className={`btn btn-sm ${tab === 'resep' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('resep')}>
+          Verifikasi Resep ({totalMenunggu})
         </button>
-        <button
-          onClick={() => setActiveTab('stok')}
-          className={`btn btn-sm ${activeTab === 'stok' ? 'btn-primary' : 'btn-secondary'}`}
-        >
-          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
-          Inventaris Obat ({obatList.length})
+        <button className={`btn btn-sm ${tab === 'mutasi' ? 'btn-primary' : 'btn-secondary'}`} onClick={() => setTab('mutasi')}>
+          Mutasi Stok
         </button>
       </div>
 
-      {/* === TAB: Resep Masuk === */}
-      {activeTab === 'resep' && (
-        <Card className="p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-heading-lg font-bold text-[var(--text-primary)]">Resep dari Dokter</h2>
-            <p className="text-caption text-[var(--text-muted)]">
-              Pilih obat untuk disiapkan → konfirmasi selesai
-            </p>
-          </div>
+      {error && <div className="px-4 py-2 rounded-lg bg-[var(--status-danger)]/10 text-[var(--status-danger)] text-sm">{error}</div>}
 
-          {resepMasuk.length === 0 ? (
-            <div className="text-center py-8">
-              <svg className="w-12 h-12 mx-auto text-[var(--text-muted)] mb-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/></svg>
-              <p className="text-body text-[var(--text-secondary)]">Belum ada resep masuk dari dokter</p>
-              <p className="text-caption text-[var(--text-muted)] mt-1">Resep akan muncul setelah dokter menyimpan rekam medis.</p>
+      {tab === 'resep' && (
+        <>
+          <Card className="p-3.5">
+            <div className="flex flex-wrap items-end gap-3">
+              <Select
+                label="Status"
+                value={filterStatus}
+                onChange={setFilterStatus}
+                options={[
+                  { value: 'menunggu', label: 'Menunggu Verifikasi' },
+                  { value: 'dispensed', label: 'Didispensasi' },
+                  { value: 'dibatalkan', label: 'Dibatalkan' },
+                ]}
+              />
+              <div className="ml-auto"><Btn variant="secondary" size="sm" onClick={loadResep} disabled={loading}>Muat Ulang</Btn></div>
             </div>
-          ) : (
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>No. Antrean</th>
-                    <th>Pasien</th>
-                    <th>Poli</th>
-                    <th>Dokter</th>
-                    <th>Obat</th>
-                    <th>Dosis / Keterangan</th>
-                    <th>Qty</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resepMasuk.map((resep, i) => (
-                    <tr key={`${resep.kunjunganId}-${i}`}>
-                      <td className="font-medium">{resep.noAntrean}</td>
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 rounded-full bg-[var(--brand-light)] flex items-center justify-center text-[var(--brand-primary)] text-tiny font-bold">
-                            {resep.patientName.charAt(0)}
-                          </div>
-                          <span className="font-medium">{resep.patientName}</span>
-                          <span className="text-caption text-[var(--text-muted)]">({resep.patientNoRM})</span>
-                        </div>
-                      </td>
-                      <td><Badge variant="primary">{resep.poliName}</Badge></td>
-                      <td className="text-body-sm">{resep.dokterName}</td>
-                      <td>
-                        <span className="font-medium">{getObatById(resep.obatId)?.nama || 'Obat tidak ditemukan'}</span>
-                        <span className="text-caption text-[var(--text-muted)] ml-1">
-                          ({getObatById(resep.obatId)?.kategori || ''})
-                        </span>
-                      </td>
-                      <td className="text-body-sm">{resep.dosis || '-'}</td>
-                      <td className="font-medium">{resep.qty}</td>
-                      <td>
-                        <Badge variant={resep.status === 'Selesai' ? 'success' : 'warning'}>
-                          {resep.status}
-                        </Badge>
-                      </td>
-                      <td>
-                        {resep.status === 'Belum' && (
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => handleSiapkanObat(resep.kunjunganId)}
-                              className="btn btn-secondary btn-sm"
-                            >
-                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-                              Siapkan
-                            </button>
-                          </div>
-                        )}
-                        {resep.status === 'Siapkan Obat' && (
-                          <button
-                            onClick={() => handleSelesai(resep.kunjunganId)}
-                            className="btn btn-primary btn-sm"
-                          >
-                            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 6 9 17l-5-5"/></svg>
-                            Selesai
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </Card>
-      )}
+          </Card>
 
-      {/* === TAB: Inventaris Obat === */}
-      {activeTab === 'stok' && (
-        <div className="space-y-4">
-          {/* Tombol + */}
-          <div className="flex justify-end">
-            <button onClick={handleAddObat} className="btn btn-primary btn-sm">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>
-              Tambah Obat Baru
-            </button>
-          </div>
-
-          {/* Form (berada di atas tabel) */}
-          {formMode === 'add' && (
-            <Card className="p-5 border-dashed border-[var(--border-primary)]">
-              <h2 className="text-heading-md font-bold text-[var(--text-primary)] mb-4">
-                {saved ? '✓ Obat berhasil ditambahkan!' : 'Tambah Obat Baru'}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="label">Nama Obat</label>
-                  <input
-                    type="text"
-                    value={formData.nama}
-                    onChange={e => setFormData({ ...formData, nama: e.target.value })}
-                    className={`input ${formErrors.nama ? 'input-error' : ''}`}
-                    placeholder="Paracetamol 500mg"
-                  />
-                  {formErrors.nama && <p className="text-caption text-red-500 mt-1">{formErrors.nama}</p>}
-                </div>
-                <div>
-                  <label className="label">Kategori</label>
-                  <input
-                    type="text"
-                    value={formData.kategori}
-                    onChange={e => setFormData({ ...formData, kategori: e.target.value })}
-                    className={`input ${formErrors.kategori ? 'input-error' : ''}`}
-                    placeholder="Analgesik, Antibiotik, dll"
-                  />
-                  {formErrors.kategori && <p className="text-caption text-red-500 mt-1">{formErrors.kategori}</p>}
-                </div>
-                <div>
-                  <label className="label">Satuan</label>
-                  <select
-                    value={formData.satuan}
-                    onChange={e => setFormData({ ...formData, satuan: e.target.value })}
-                    className="input"
-                  >
-                    <option value="tablet">Tablet</option>
-                    <option value="kapsul">Kapsul</option>
-                    <option value="vial">Vial</option>
-                    <option value="syrup">Syrup</option>
-                    <option value="salep">Salep</option>
-                    <option value="kemasan">Kemasan</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Stok</label>
-                  <input
-                    type="number"
-                    value={formData.stok}
-                    onChange={e => setFormData({ ...formData, stok: parseInt(e.target.value, 10) || 0 })}
-                    className={`input ${formErrors.stok ? 'input-error' : ''}`}
-                    min={0}
-                  />
-                  {formErrors.stok && <p className="text-caption text-red-500 mt-1">{formErrors.stok}</p>}
-                </div>
-                <div>
-                  <label className="label">Harga Beli (Rp)</label>
-                  <input
-                    type="number"
-                    value={formData.hargaBeli}
-                    onChange={e => setFormData({ ...formData, hargaBeli: parseInt(e.target.value, 10) || 0 })}
-                    className={`input ${formErrors.hargaBeli ? 'input-error' : ''}`}
-                    min={0}
-                  />
-                  {formErrors.hargaBeli && <p className="text-caption text-red-500 mt-1">{formErrors.hargaBeli}</p>}
-                </div>
-                <div>
-                  <label className="label">Harga Jual (Rp)</label>
-                  <input
-                    type="number"
-                    value={formData.hargaJual}
-                    onChange={e => setFormData({ ...formData, hargaJual: parseInt(e.target.value, 10) || 0 })}
-                    className={`input ${formErrors.hargaJual ? 'input-error' : ''}`}
-                    min={0}
-                  />
-                  {formErrors.hargaJual && <p className="text-caption text-red-500 mt-1">{formErrors.hargaJual}</p>}
-                </div>
-                <div>
-                  <label className="label">Stok Minimum (peringatan)</label>
-                  <input
-                    type="number"
-                    value={formData.stokMinimum}
-                    onChange={e => setFormData({ ...formData, stokMinimum: parseInt(e.target.value, 10) || 0 })}
-                    className={`input ${formErrors.stokMinimum ? 'input-error' : ''}`}
-                    min={0}
-                  />
-                  {formErrors.stokMinimum && <p className="text-caption text-red-500 mt-1">{formErrors.stokMinimum}</p>}
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 mt-4">
-                <button onClick={() => setFormMode('browse')} className="btn btn-ghost">
-                  Batal
-                </button>
-                <button onClick={handleSimpan} className="btn btn-primary">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 3 5-3V21a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h10"/></svg>
-                  Simpan
-                </button>
-              </div>
-            </Card>
-          )}
-
-          {formMode === 'edit' && (
-            <Card className="p-5 border-[var(--brand-primary)]">
-              <h2 className="text-heading-md font-bold text-[var(--text-primary)] mb-4">
-                {saved ? '✓ Obat berhasil diperbarui!' : 'Edit Stok Obat'}
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="label">Nama Obat</label>
-                  <input
-                    type="text"
-                    value={formData.nama}
-                    onChange={e => setFormData({ ...formData, nama: e.target.value })}
-                    className="input"
-                    disabled
-                  />
-                </div>
-                <div>
-                  <label className="label">Kategori</label>
-                  <input
-                    type="text"
-                    value={formData.kategori}
-                    onChange={e => setFormData({ ...formData, kategori: e.target.value })}
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label className="label">Satuan</label>
-                  <select
-                    value={formData.satuan}
-                    onChange={e => setFormData({ ...formData, satuan: e.target.value })}
-                    className="input"
-                  >
-                    <option value="tablet">Tablet</option>
-                    <option value="kapsul">Kapsul</option>
-                    <option value="vial">Vial</option>
-                    <option value="syrup">Syrup</option>
-                    <option value="salep">Salep</option>
-                    <option value="kemasan">Kemasan</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label">Stok</label>
-                  <input
-                    type="number"
-                    value={formData.stok}
-                    onChange={e => setFormData({ ...formData, stok: parseInt(e.target.value, 10) || 0 })}
-                    className={`input ${formErrors.stok ? 'input-error' : ''}`}
-                    min={0}
-                  />
-                  {formErrors.stok && <p className="text-caption text-red-500 mt-1">{formErrors.stok}</p>}
-                </div>
-                <div>
-                  <label className="label">Harga Beli (Rp)</label>
-                  <input
-                    type="number"
-                    value={formData.hargaBeli}
-                    onChange={e => setFormData({ ...formData, hargaBeli: parseInt(e.target.value, 10) || 0 })}
-                    className="input"
-                    min={0}
-                  />
-                </div>
-                <div>
-                  <label className="label">Harga Jual (Rp)</label>
-                  <input
-                    type="number"
-                    value={formData.hargaJual}
-                    onChange={e => setFormData({ ...formData, hargaJual: parseInt(e.target.value, 10) || 0 })}
-                    className="input"
-                    min={0}
-                  />
-                </div>
-                <div>
-                  <label className="label">Stok Minimum</label>
-                  <input
-                    type="number"
-                    value={formData.stokMinimum}
-                    onChange={e => setFormData({ ...formData, stokMinimum: parseInt(e.target.value, 10) || 0 })}
-                    className={`input ${formErrors.stokMinimum ? 'input-error' : ''}`}
-                    min={0}
-                  />
-                  {formErrors.stokMinimum && <p className="text-caption text-red-500 mt-1">{formErrors.stokMinimum}</p>}
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 mt-4">
-                <button onClick={() => setFormMode('browse')} className="btn btn-ghost">
-                  Batal
-                </button>
-                <button onClick={handleSimpan} className="btn btn-primary">
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 3 5-3V21a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h10"/></svg>
-                  Update
-                </button>
-              </div>
-            </Card>
-          )}
-
-          {/* Tabel stok */}
-          <Card className="p-5">
-            <h2 className="text-heading-lg font-bold text-[var(--text-primary)] mb-4">Daftar Obat</h2>
-
-            {obatList.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-body text-[var(--text-secondary)]">Belum ada data obat. Tambahkan obat baru.</p>
-              </div>
+          <Card className="overflow-hidden">
+            {loading ? (
+              <div className="flex items-center gap-2 p-6 text-sm text-[var(--text-tertiary)]"><Spinner size="sm" /> Memuat resep…</div>
+            ) : (resep || []).length === 0 ? (
+              <EmptyState title="Tidak ada resep" desc="Resep dokter yang menunggu verifikasi akan muncul di sini." />
             ) : (
-              <div className="table-container">
+              <div className="table-container" style={{ borderRadius: 0, border: 'none' }}>
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Nama Obat</th>
-                      <th>Kategori</th>
-                      <th>Stok</th>
-                      <th>Harga Beli</th>
-                      <th>Harga Jual</th>
-                      <th>Stok Min.</th>
-                      <th>Satuan</th>
-                      <th>Status</th>
-                      <th>Aksi</th>
+                      <th>No</th><th>Antrean</th><th>Pasien</th><th>Poli</th><th>Dokter</th><th>Tanggal</th>
+                      <th className="text-right">Total Obat</th><th>Status Farmasi</th><th className="w-28 text-center">Aksi</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {obatList.map(ob => {
-                      const isCritical = ob.stok <= ob.stokMinimum
-                      return (
-                        <tr
-                          key={ob.id}
-                          className={isCritical ? 'bg-red-50/30 dark:bg-red-900/20' : ''}
-                        >
-                          <td>
-                            <span className="font-medium">{ob.nama}</span>
-                          </td>
-                          <td><Badge variant="neutral">{ob.kategori}</Badge></td>
-                          <td className={`font-medium ${isCritical ? 'text-red-600 dark:text-red-400' : ''}`}>
-                            {ob.stok}
-                          </td>
-                          <td className="text-body-sm">{formatRupiah(ob.hargaBeli)}</td>
-                          <td className="font-medium">{formatRupiah(ob.hargaJual)}</td>
-                          <td>
-                            <span className="text-caption">{ob.stokMinimum}</span>
-                          </td>
-                          <td className="text-caption text-[var(--text-muted)]">{ob.satuan}</td>
-                          <td>
-                            {isCritical ? (
-                              <Badge variant="danger">Kritis</Badge>
-                            ) : ob.stok <= ob.stokMinimum * 2 ? (
-                              <Badge variant="warning">Hampir Kritis</Badge>
-                            ) : (
-                              <Badge variant="success">Normal</Badge>
-                            )}
-                          </td>
-                          <td>
-                            <button
-                              onClick={() => handleEditStok(ob)}
-                              className="btn btn-secondary btn-sm"
-                            >
-                              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                              Edit
-                            </button>
-                          </td>
-                        </tr>
-                      )
-                    })}
+                    {(resep || []).map((r, i) => (
+                      <tr key={r.id}>
+                        <td className="font-mono text-caption text-[var(--text-tertiary)]">{i + 1}</td>
+                        <td className="font-mono font-semibold text-[var(--brand-primary)]">{r.noPendaftaran}</td>
+                        <td>
+                          <div className="font-medium text-[var(--text-primary)]">{r.pasien?.nama || '-'}</div>
+                          <div className="font-mono text-caption text-[var(--text-tertiary)]">RM {r.pasien?.noRm || '-'}</div>
+                        </td>
+                        <td className="text-[var(--text-secondary)]">{r.poli?.nama || '-'}</td>
+                        <td className="text-[var(--text-secondary)]">{r.dokter?.nama || '-'}</td>
+                        <td className="font-mono text-caption text-[var(--text-tertiary)]">{fmtTanggal(r.tanggal)}</td>
+                        <td className="text-right font-mono font-semibold">{fmtCurrency(sumObat(r))}</td>
+                        <td><Badge tone={FARMASI_TONE[r.statusFarmasi] || 'neutral'}>{FARMASI_LABEL[r.statusFarmasi] || r.statusFarmasi}</Badge></td>
+                        <td className="text-center">
+                          {r.statusFarmasi === 'menunggu' ? (
+                            <Btn size="sm" variant="primary" onClick={() => openDetail(r)}>Dispense</Btn>
+                          ) : (
+                            <Btn size="sm" variant="secondary" onClick={() => openDetail(r)}>Detail</Btn>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
             )}
           </Card>
+        </>
+      )}
+
+      {tab === 'mutasi' && (
+        <>
+          <Card className="p-3.5">
+            <div className="flex flex-wrap items-end gap-3">
+              <Select
+                label="Tipe Mutasi"
+                value={filterTipe}
+                onChange={setFilterTipe}
+                options={[
+                  { value: '', label: 'Semua Tipe' },
+                  { value: 'masuk', label: 'Masuk' },
+                  { value: 'keluar', label: 'Keluar' },
+                  { value: 'dispensing', label: 'Dispensing' },
+                  { value: 'opname', label: 'Opname' },
+                  { value: 'penyesuaian', label: 'Penyesuaian' },
+                ]}
+              />
+              <div className="ml-auto"><Btn variant="secondary" size="sm" onClick={loadMutasi} disabled={loading}>Muat Ulang</Btn></div>
+            </div>
+          </Card>
+
+          <Card className="overflow-hidden">
+            {loading ? (
+              <div className="flex items-center gap-2 p-6 text-sm text-[var(--text-tertiary)]"><Spinner size="sm" /> Memuat mutasi…</div>
+            ) : mutasi.length === 0 ? (
+              <EmptyState title="Belum ada mutasi stok" desc="Setiap dispensing / penyesuaian stok akan tercatat di sini." />
+            ) : (
+              <div className="table-container" style={{ borderRadius: 0, border: 'none' }}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>No</th><th>Tanggal</th><th>Obat</th><th>Tipe</th>
+                      <th className="text-right">Qty</th><th className="text-right">Stok</th><th>Keterangan</th><th>Oleh</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mutasi.map((m, i) => (
+                      <tr key={m.id}>
+                        <td className="font-mono text-caption text-[var(--text-tertiary)]">{i + 1}</td>
+                        <td className="font-mono text-caption text-[var(--text-tertiary)]">{fmtTanggal(m.createdAt)}</td>
+                        <td className="font-medium text-[var(--text-primary)]">{m.obat?.nama || '-'}</td>
+                        <td><Badge tone={TIPE_TONE[m.tipe] || 'neutral'}>{TIPE_LABEL[m.tipe] || m.tipe}</Badge></td>
+                        <td className="text-right font-mono font-semibold">{fmtNum(m.qty)}</td>
+                        <td className="text-right font-mono text-[var(--text-secondary)]">{fmtNum(m.stokSebelum)} → {fmtNum(m.stokSesudah)}</td>
+                        <td className="text-[var(--text-secondary)]">{m.keterangan || '-'}</td>
+                        <td className="text-[var(--text-secondary)]">{m.createdBy || '-'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
+        </>
+      )}
+
+      {/* === Modal detail / dispense === */}
+      {detail && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-2xl rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-xl">
+            <div className="flex items-center justify-between border-b border-[var(--border-primary)] px-5 py-3">
+              <div>
+                <h2 className="text-heading-md font-bold text-[var(--text-primary)]">
+                  {detail.statusFarmasi === 'menunggu' ? 'Verifikasi & Dispensing Resep' : 'Detail Resep'}
+                </h2>
+                <p className="text-sm text-[var(--text-muted)]">
+                  {detail.noPendaftaran} • {detail.pasien?.nama} • RM {detail.pasien?.noRm}
+                </p>
+              </div>
+              <Btn size="sm" variant="ghost" onClick={closeDetail}>✕</Btn>
+            </div>
+
+            <div className="max-h-[60vh] space-y-4 overflow-y-auto p-5">
+              <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+                <div><p className="text-caption text-[var(--text-tertiary)]">Poli</p><p className="font-medium">{detail.poli?.nama || '-'}</p></div>
+                <div><p className="text-caption text-[var(--text-tertiary)]">Dokter</p><p className="font-medium">{detail.dokter?.nama || '-'}</p></div>
+                <div><p className="text-caption text-[var(--text-tertiary)]">Tanggal</p><p className="font-medium">{fmtTanggal(detail.tanggal)}</p></div>
+                <div><p className="text-caption text-[var(--text-tertiary)]">Status Farmasi</p><p><Badge tone={FARMASI_TONE[detail.statusFarmasi] || 'neutral'}>{FARMASI_LABEL[detail.statusFarmasi] || detail.statusFarmasi}</Badge></p></div>
+              </div>
+
+              <div>
+                <p className="mb-2 text-caption text-[var(--text-tertiary)]">Daftar Obat Resep</p>
+                <table className="table">
+                  <thead><tr><th>Obat</th><th className="text-right">Jumlah</th><th className="text-right">Harga</th><th className="text-right">Subtotal</th></tr></thead>
+                  <tbody>
+                    {(detail.pemberianObat || []).map((o, i) => (
+                      <tr key={i}>
+                        <td className="font-medium text-[var(--text-primary)]">{o.namaObat || 'Obat tanpa nama'}</td>
+                        <td className="text-right font-mono">{fmtNum(o.jumlah)}</td>
+                        <td className="text-right font-mono">{fmtCurrency(o.harga)}</td>
+                        <td className="text-right font-mono font-semibold">{fmtCurrency((Number(o.harga) || 0) * (Number(o.jumlah) || 0))}</td>
+                      </tr>
+                    ))}
+                    {(detail.pemberianObatRacik || []).map((r, i) => (
+                      <tr key={`racik-${i}`}>
+                        <td className="text-[var(--text-secondary)]">Racikan: {r.detail || '-'} ({r.aturanPakai || '-'})</td>
+                        <td className="text-right font-mono">{fmtNum(r.jumlahKemasan)}</td>
+                        <td className="text-right text-[var(--text-tertiary)]">-</td>
+                        <td className="text-right text-[var(--text-tertiary)]">-</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr><td colSpan={3} className="text-right font-semibold">Total Obat</td><td className="text-right font-mono font-semibold text-[var(--brand-primary)]">{fmtCurrency(sumObat(detail))}</td></tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {detail.statusFarmasi === 'menunggu' && (
+                <div>
+                  <label className="label">Catatan Farmasi (opsional)</label>
+                  <Input type="text" placeholder="mis. racikan khusus, pengganti obat…" value={catatan} onChange={setCatatan} />
+                </div>
+              )}
+              {detail.catatanFarmasi && (
+                <p className="text-sm text-[var(--text-secondary)]"><b>Catatan:</b> {detail.catatanFarmasi}</p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-3 border-t border-[var(--border-primary)] px-5 py-3">
+              <Btn size="sm" variant="ghost" onClick={closeDetail}>Tutup</Btn>
+              {detail.statusFarmasi === 'menunggu' && (
+                <>
+                  <Btn size="sm" variant="danger" onClick={doBatalkan} disabled={processing}>Batalkan Resep</Btn>
+                  <Btn size="sm" variant="success" onClick={doDispense} disabled={processing}>
+                    {processing ? 'Memproses…' : 'Dispense & Kurangi Stok'}
+                  </Btn>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>

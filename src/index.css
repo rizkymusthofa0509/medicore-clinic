@@ -163,6 +163,49 @@
   .dark .badge-success { background: rgba(149, 213, 178, 0.2); color: #95d5b2; }
   .dark .badge-warning { background: rgba(233, 196, 106, 0.2); color: #e9c46a; }
   .dark .badge-danger { background: rgba(231, 111, 81, 0.2); color: #e76f51; }
+
+  .table-container {
+    overflow-x: auto;
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    background: var(--bg-primary);
+  }
+
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+  }
+
+  .table thead th {
+    padding: 0.625rem 0.875rem;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-primary);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    text-align: left;
+    white-space: nowrap;
+  }
+
+  .table tbody td {
+    padding: 0.625rem 0.875rem;
+    border-bottom: 1px solid var(--border-primary);
+    color: var(--text-primary);
+    vertical-align: middle;
+  }
+
+  .table tbody tr:hover { background: var(--bg-hover); }
+  .table tbody tr:last-child td { border-bottom: none; }
+
+  .table tfoot td {
+    padding: 0.625rem 0.875rem;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border-primary);
+    font-size: 0.8125rem;
+  }
 }
 
 @layer utilities {
@@ -201,6 +244,30 @@
   animation: slideUp 250ms ease;
 }
 
+.toast-content {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  max-width: 22rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-large);
+  backdrop-filter: blur(8px);
+  animation: toastIn 400ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slideIn { from { opacity: 0; transform: translateX(100%); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(24px) scale(0.96); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+.toast-exit {
+  animation: toastOut 300ms ease forwards;
+}
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0) scale(1); }
+  to { opacity: 0; transform: translateX(16px) scale(0.96); }
+}

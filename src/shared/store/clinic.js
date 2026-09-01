@@ -41,19 +41,16 @@ export function getVisits(branchId) {
   ]
 }
 
-export function getPoli(branchId) {
-  return [
-    { id: '1', nama: 'Poli Umum', kode: 'PL-UM' },
-    { id: '2', nama: 'Poli Gigi', kode: 'PL-GI' },
-  ]
+export function getPoli() {
+  throw new Error('getPoli() is deprecated. Use fetchPoli(branchId) from features/master/service/poliService.js')
 }
 
-export function addPoli(data) {
-  return { ...data, id: Date.now().toString() }
+export function addPoli() {
+  throw new Error('addPoli() is deprecated. Use createPoli() from features/master/service/poliService.js')
 }
 
-export function addRuangan(poliId, ruangan) {
-  return true
+export function addRuangan() {
+  throw new Error('addRuangan() is deprecated. Use createRuangan() from features/master/service/ruanganService.js')
 }
 
 export function getDoctors(branchId) {
@@ -98,13 +95,11 @@ export function createKunjungan(data) {
 }
 
 export function getDepoObat() {
-  return [
-    { id: '1', namaDepo: 'Depo Utama', lokasi: 'Lantai 1' },
-  ]
+  throw new Error('getDepoObat() is deprecated. Use fetchDepoObat(branchId) from features/master/service/depoObatService.js')
 }
 
-export function addDepoObat(data) {
-  return { ...data, id: Date.now().toString() }
+export function addDepoObat() {
+  throw new Error('addDepoObat() is deprecated. Use createDepoObat() from features/master/service/depoObatService.js')
 }
 
 export function getTindakanMedis() {

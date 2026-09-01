@@ -1,21 +1,98 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 // ==================== ACTION DROPDOWN (Vertical Dots) ====================
+// Di-render via portal ke document.body supaya tidak pernah tertutup ancestor
+// apapun (scroll container, sticky header, fixed footer, dsb).
 export function ActionDropdown({ actions, row }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const [pos, setPos] = useState({ top: 0, left: 0 })
+  const buttonRef = useRef(null)
+  const menuRef = useRef(null)
+
+  const recalcPos = () => {
+    if (!buttonRef.current) return
+    const rect = buttonRef.current.getBoundingClientRect()
+    const menuHeight = menuRef.current?.offsetHeight || 120
+    const menuWidth = 192 // w-48
+    const margin = 4
+
+    // Default: buka ke bawah
+    let top = rect.bottom + margin
+    // Kalau bakal overflow bawah viewport, buka ke atas
+    if (top + menuHeight > window.innerHeight - 8) {
+      top = Math.max(8, rect.top - menuHeight - margin)
+    }
+    // Right-align ke tombol
+    let left = rect.right - menuWidth
+    if (left < 8) left = 8
+    if (left + menuWidth > window.innerWidth - 8) left = window.innerWidth - menuWidth - 8
+
+    setPos({ top, left })
+  }
 
   useEffect(() => {
-    const onClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    if (!open) return
+
+    recalcPos()
+    const onScrollOrResize = () => recalcPos()
+    window.addEventListener('scroll', onScrollOrResize, true)
+    window.addEventListener('resize', onScrollOrResize)
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize, true)
+      window.removeEventListener('resize', onScrollOrResize)
     }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    const onClick = (e) => {
+      if (buttonRef.current?.contains(e.target)) return
+      if (menuRef.current?.contains(e.target)) return
+      setOpen(false)
+    }
+    const onKey = (e) => { if (e.key === 'Escape') setOpen(false) }
     document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [])
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
+  const menu = open ? (
+    <div
+      ref={menuRef}
+      className="fixed w-48 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5"
+      style={{ top: pos.top, left: pos.left, zIndex: 2147483647 }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {actions.map((action, idx) => (
+        <button
+          key={idx}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            setOpen(false)
+            action.onClick?.(row)
+          }}
+          className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
+            action.danger
+              ? 'text-[var(--status-danger)] hover:bg-red-50 dark:hover:bg-red-900/20'
+              : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          {action.icon && <span className="w-4 h-4 shrink-0">{action.icon}</span>}
+          <span className="truncate">{action.label}</span>
+        </button>
+      ))}
+    </div>
+  ) : null
 
   return (
-    <div className="relative" ref={ref} style={{ zIndex: open ? 999999 : 'auto' }}>
+    <div className="relative inline-block">
       <button
+        ref={buttonRef}
         type="button"
         onClick={(e) => { e.stopPropagation(); setOpen(!open) }}
         className="p-1.5 rounded-lg text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] transition-colors"
@@ -27,33 +104,7 @@ export function ActionDropdown({ actions, row }) {
           <circle cx="12" cy="19" r="2" />
         </svg>
       </button>
-      {open && (
-        <div
-          className="absolute right-0 top-full mt-1 w-48 rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-2xl py-1.5"
-          style={{ zIndex: 999999 }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {actions.map((action, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation()
-                setOpen(false)
-                action.onClick?.(row)
-              }}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm transition-colors ${
-                action.danger 
-                  ? 'text-[var(--status-danger)] hover:bg-red-50 dark:hover:bg-red-900/20' 
-                  : 'text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              {action.icon && <span className="w-4 h-4 shrink-0">{action.icon}</span>}
-              <span className="truncate">{action.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+      {typeof document !== 'undefined' && menu && createPortal(menu, document.body)}
     </div>
   )
 }
@@ -130,8 +181,8 @@ export function TabelMaster({
         </span>
       </div>
 
-      <div className="card" style={{ overflow: 'visible' }}>
-        <table className="w-full" style={{ position: 'relative' }}>
+      <div className="card overflow-x-auto overflow-y-visible" style={{ overflowY: 'visible' }}>
+        <table className="w-full" style={{ position: 'relative', minWidth: 'max-content' }}>
           <thead>
             <tr className="border-b border-[var(--border-primary)] bg-[var(--bg-secondary)]">
               <th className={`${cellPadding} w-12 text-left`}>
@@ -187,7 +238,7 @@ export function TabelMaster({
                   {allColumns.map(col => {
                     if (col.key === '__actions__') {
                       return (
-                        <td key={col.key} className={`${cellPadding} text-right`} style={{ position: 'relative', overflow: 'visible' }}>
+                        <td key={col.key} className={`${cellPadding} text-right`}>
                           {actions && <ActionDropdown actions={actions} row={row} />}
                         </td>
                       )
