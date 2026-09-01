@@ -7,11 +7,13 @@ use App\Http\Controllers\Api\DepoObatController;
 use App\Http\Controllers\Api\FarmasiController;
 use App\Http\Controllers\Api\KasirController;
 use App\Http\Controllers\Api\KunjunganController;
+use App\Http\Controllers\Api\LaboratoriumController;
 use App\Http\Controllers\Api\LaporanLanjutanController;
 use App\Http\Controllers\Api\NakesController;
 use App\Http\Controllers\Api\ObatAlkesController;
 use App\Http\Controllers\Api\PasienController;
 use App\Http\Controllers\Api\PendapatanController;
+use App\Http\Controllers\Api\PenjualanLangsungController;
 use App\Http\Controllers\Api\PemeriksaanDokterController;
 use App\Http\Controllers\Api\PoliController;
 use App\Http\Controllers\Api\RuanganController;
@@ -186,5 +188,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/resep/{id}/batalkan', [FarmasiController::class, 'batalkan']);
         Route::get('/stok', [FarmasiController::class, 'stok']);
         Route::post('/stok/mutasi', [FarmasiController::class, 'mutasiStok']);
+    });
+
+    // Penjualan Obat Langsung (OTC) per branch_id
+    Route::prefix('penjualan-langsung')->group(function () {
+        Route::get('/', [PenjualanLangsungController::class, 'index']);
+        Route::get('/next-nomor', [PenjualanLangsungController::class, 'nextNomor']);
+        Route::post('/', [PenjualanLangsungController::class, 'store']);
+    });
+
+    // Laboratorium per branch_id
+    Route::prefix('laboratorium')->group(function () {
+        Route::get('/', [LaboratoriumController::class, 'index']);
+        Route::post('/', [LaboratoriumController::class, 'store']);
+        Route::put('/{id}', [LaboratoriumController::class, 'update']);
     });
 });
