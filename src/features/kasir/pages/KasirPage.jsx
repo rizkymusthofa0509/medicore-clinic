@@ -181,8 +181,10 @@ export default function KasirPage() {
                       </td>
                       <td className="text-center">
                         <Btn size="sm" variant="primary" onClick={() => {
+                          // Modal dibuka dengan status simpan yang bersih. `paying`
+                          // hanya aktif setelah Konfirmasi Pembayaran dipilih.
+                          setPaying(false)
                           setSelected({ ...row, bayarForm: { jumlah_dibayarkan: Number(row.totalTagihan), metode_pembayaran: 'tunai', catatan: '' } })
-                          setPaying(true)
                         }}>
                           Bayar
                         </Btn>
@@ -235,7 +237,7 @@ export default function KasirPage() {
       )}
 
       {/* === Modal proses pembayaran === */}
-      {paying && selected && (
+      {selected && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-2xl rounded-xl border border-[var(--border-primary)] bg-[var(--bg-primary)] shadow-xl">
             <div className="flex items-center justify-between border-b border-[var(--border-primary)] px-5 py-3">
