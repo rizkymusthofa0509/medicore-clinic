@@ -1,8 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { login } from '../../../shared/api.js'
+import { login, pingServer } from '../../../shared/api.js'
 import { saveAuthData } from '../../../shared/auth.js'
 import { setUserBranches } from '../../../shared/store/clinic.js'
+
+const BRAND_MESSAGES = [
+  {
+    title: <>Kelola Klinik Anda<br /><span className="text-[#95d5b2]">Secara Profesional</span></>,
+    description: 'Satu sistem terpadu untuk mengelola pasien, rekam medis, farmasi, dan pembayaran.',
+  },
+  {
+    title: <>Layanan Kesehatan<br /><span className="text-[#95d5b2]">Lebih Terarah</span></>,
+    description: 'Bantu setiap tim memberikan pelayanan yang cepat, akurat, dan berkesinambungan.',
+  },
+  {
+    title: <>Data Klinik<br /><span className="text-[#95d5b2]">Tersaji Dalam Kendali</span></>,
+    description: 'Pantau operasional cabang dan buat keputusan layanan berbasis data secara lebih mudah.',
+  },
+]
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -11,6 +26,29 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [connection, setConnection] = useState('checking')
+  const [messageIndex, setMessageIndex] = useState(0)
+
+  useEffect(() => {
+    let active = true
+    const checkConnection = async () => {
+      const result = await pingServer()
+      if (active) setConnection(result.online ? 'online' : 'offline')
+    }
+    checkConnection()
+    const interval = window.setInterval(checkConnection, 30_000)
+    return () => { active = false; window.clearInterval(interval) }
+  }, [])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setMessageIndex((index) => (index + 1) % BRAND_MESSAGES.length)
+    }, 5_000)
+    return () => window.clearInterval(interval)
+  }, [])
+
+  const activeMessage = BRAND_MESSAGES[messageIndex]
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -63,21 +101,22 @@ export default function LoginPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold tracking-tight">Medicore Clinic</h1>
-              <p className="text-sm text-white/70">Sistem Manajemen Klinik Multi-Branch</p>
+              <p className="text-sm text-white/70">Sistem Informasi Layanan Kesehatan</p>
             </div>
           </div>
 
           {/* Features */}
           <div className="space-y-6">
             <div>
-              <h2 className="text-3xl font-bold leading-tight">
-                Kelola Klinik Anda<br />
-                <span className="text-[#95d5b2]">Secara Profesional</span>
-              </h2>
-              <p className="mt-4 text-white/80 text-base leading-relaxed">
-                Platform manajemen klinik terintegrasi untuk multi-branch. 
-                Kelola pasien, rekam medis, farmasi, dan pembayaran dalam satu sistem.
-              </p>
+              <div key={messageIndex} className="animate-[fade-in_400ms_ease-out]">
+                <h2 className="text-3xl font-bold leading-tight">{activeMessage.title}</h2>
+                <p className="mt-4 text-white/80 text-base leading-relaxed">{activeMessage.description}</p>
+              </div>
+              <div className="mt-5 flex gap-1.5" aria-label="Pesan informasi">
+                {BRAND_MESSAGES.map((_, index) => (
+                  <span key={index} className={`h-1.5 rounded-full transition-all ${index === messageIndex ? 'w-6 bg-[#95d5b2]' : 'w-1.5 bg-white/35'}`} />
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-8">
@@ -136,8 +175,15 @@ export default function LoginPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-[var(--text-primary)]">Medicore Clinic</h1>
-              <p className="text-xs text-[var(--text-muted)]">Sistem Manajemen Klinik</p>
+              <p className="text-xs text-[var(--text-muted)]">Sistem Informasi Layanan Kesehatan</p>
             </div>
+          </div>
+
+          <div className="flex items-center justify-center gap-2 text-xs mb-5" role="status" aria-live="polite">
+            <span className={`h-2 w-2 rounded-full ${connection === 'online' ? 'bg-emerald-500' : connection === 'offline' ? 'bg-red-500' : 'bg-amber-400 animate-pulse'}`} />
+            <span className={connection === 'online' ? 'text-emerald-700 dark:text-emerald-400' : connection === 'offline' ? 'text-red-700 dark:text-red-400' : 'text-[var(--text-muted)]'}>
+              {connection === 'online' ? 'Terhubung ke server klinik' : connection === 'offline' ? 'Server klinik tidak dapat dihubungi' : 'Memeriksa koneksi server…'}
+            </span>
           </div>
 
           <div className="text-center mb-8">
@@ -180,10 +226,10 @@ export default function LoginPage() {
                 <label className="label">Kata Sandi</label>
                 <div className="relative">
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="input pl-10"
+                    className="input pl-10 pr-12"
                     placeholder="Masukkan kata sandi"
                     autoComplete="current-password"
                     required
@@ -192,6 +238,19 @@ export default function LoginPage() {
                     <rect x="3" y="11" width="18" height="11" rx="2" />
                     <path d="M7 11V7a5 5 0 0110 0v4" />
                   </svg>
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((visible) => !visible)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                    title={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                  >
+                    {showPassword ? (
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="m3 3 18 18M10.6 10.6A2 2 0 0 0 13.4 13.4M9.9 4.2A10.6 10.6 0 0 1 12 4c5.3 0 8.8 4.2 9.7 5.5a1 1 0 0 1 0 1C21.2 11.3 19.8 13 18 14.4M6.1 6.1C4.1 7.4 2.8 9.2 2.3 10.5a1 1 0 0 0 0 1C3.2 12.8 6.7 17 12 17c1 0 1.9-.1 2.7-.4" /></svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M2.3 12S5.8 5 12 5s9.7 7 9.7 7-3.5 7-9.7 7S2.3 12 2.3 12Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -212,10 +271,6 @@ export default function LoginPage() {
               </button>
             </form>
           </div>
-
-          <p className="text-center text-xs text-[#52b788] mt-6">
-            Demo: admin@medicore.com / password
-          </p>
         </div>
       </div>
     </div>
