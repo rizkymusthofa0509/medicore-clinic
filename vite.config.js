@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 import path from 'node:path'
 
 export default defineConfig(({ mode }) => {
-  // Load .env + .env.[mode] supaya VITE_BE_URL terbaca di server config
+  // Load .env + .env.[mode] supaya URL backend terbaca di server config.
   const env = loadEnv(mode, process.cwd(), '')
 
   return {
@@ -20,9 +20,9 @@ export default defineConfig(({ mode }) => {
       strictPort: true,
       proxy: {
         '/api': {
-          // Prioritas: VITE_BE_URL eksplisit, lalu default BE (.env BE: 8000).
-          // Sebelumnya fallback ke 8001 yang sering kosong → 502 Bad Gateway.
-          target: env.VITE_BE_URL || 'http://127.0.0.1:8000',
+          // Gunakan key yang sama dengan Axios. VITE_BE_URL dipertahankan
+          // sebagai fallback kompatibilitas untuk konfigurasi lama.
+          target: env.VITE_API_URL || env.VITE_BE_URL || 'http://127.0.0.1:8000',
           changeOrigin: true,
           secure: false,
         },

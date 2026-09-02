@@ -21,6 +21,18 @@ function fmtCurrency(val) {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(val) || 0)
 }
 
+// Tampilan nominal mengikuti penulisan Indonesia (1.000.000), sementara nilai
+// yang disimpan di state dan dikirim ke API tetap berupa integer (1000000).
+function formatRupiahInput(val) {
+  const angka = String(val ?? '').replace(/\D/g, '')
+  return angka ? new Intl.NumberFormat('id-ID', { maximumFractionDigits: 0 }).format(Number(angka)) : ''
+}
+
+function parseRupiahInput(val) {
+  const angka = String(val ?? '').replace(/\D/g, '')
+  return angka ? Number(angka) : 0
+}
+
 function fmtTanggal(val) {
   if (!val) return '-'
   const d = new Date(val)
@@ -67,16 +79,26 @@ export default function KasirPage() {
     const bayar = Number(selected.bayarForm?.jumlah_dibayarkan ?? 0)
     if (bayar < total) return alert('Jumlah dibayarkan kurang dari total tagihan')
     const payload = selected.bayarForm
-    const res = await bayarTagihan(branchId, selected.id, {
-      jumlah_dibayarkan: payload.jumlah_dibayarkan,
-      metode_pembayaran: payload.metode_pembayaran,
-      catatan: payload.catatan,
-    })
-    if (res.success) {
-      setStruk({ ...res.data, pasien: selected.pasien, rincian: selected.rincian, noPendaftaran: selected.noPendaftaran })
-      loadAll()
-    } else {
-      alert(res.message || 'Pembayaran gagal')
+    setPaying(true)
+    try {
+      const res = await bayarTagihan(branchId, selected.id, {
+        // Kirim angka murni, bukan string yang telah diformat untuk tampilan.
+        jumlah_dibayarkan: Number(payload.jumlah_dibayarkan),
+        metode_pembayaran: payload.metode_pembayaran,
+        catatan: payload.catatan,
+      })
+      if (!res.success) {
+        alert(res.message || 'Pembayaran gagal')
+        return
+      }
+
+      closeBayar()
+      await loadAll()
+      setActiveTab('riwayat')
+    } catch (err) {
+      alert(err.response?.data?.message || 'Pembayaran gagal disimpan')
+    } finally {
+      setPaying(false)
     }
   }
 
@@ -248,9 +270,19 @@ export default function KasirPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="label">Jumlah Dibayarkan</label>
-                  <Input type="number" min={Number(selected.totalTagihan)} step="1000"
-                    value={selected.bayarForm?.jumlah_dibayarkan ?? selected.totalTagihan}
-                    onChange={(e) => setSelected({ ...selected, bayarForm: { ...(selected.bayarForm || {}), jumlah_dibayarkan: Number(e.target.value) } })} />
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={formatRupiahInput(selected.bayarForm?.jumlah_dibayarkan ?? selected.totalTagihan)}
+                    onChange={(value) => setSelected({
+                      ...selected,
+                      bayarForm: {
+                        ...(selected.bayarForm || {}),
+                        jumlah_dibayarkan: parseRupiahInput(value),
+                      },
+                    })}
+                  />
                   {Number(selected.bayarForm?.jumlah_dibayarkan ?? selected.totalTagihan) > Number(selected.totalTagihan) && (
                     <p className="text-caption text-[var(--status-success)] mt-1">Kembali: {fmtCurrency(Number(selected.bayarForm?.jumlah_dibayarkan ?? selected.totalTagihan) - Number(selected.totalTagihan))}</p>
                   )}
@@ -273,9 +305,9 @@ export default function KasirPage() {
             </div>
 
             <div className="flex items-center justify-end gap-3 border-t border-[var(--border-primary)] px-5 py-3">
-              <Btn size="sm" variant="ghost" onClick={closeBayar}>Batal</Btn>
-              <Btn size="sm" variant="success" onClick={submitBayar}>
-                Konfirmasi Pembayaran
+              <Btn size="sm" variant="ghost" onClick={closeBayar} disabled={paying}>Batal</Btn>
+              <Btn size="sm" variant="success" onClick={submitBayar} disabled={paying}>
+                {paying ? 'Menyimpan…' : 'Konfirmasi Pembayaran'}
               </Btn>
             </div>
           </div>
