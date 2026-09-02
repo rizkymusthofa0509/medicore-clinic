@@ -29,7 +29,9 @@ class BranchSeeder extends Seeder
         ];
 
         foreach ($branches as $branch) {
-            Branch::create($branch);
+            // Kode branch adalah identitas deployment. Data yang telah ada tidak
+            // diubah agar seeder aman dijalankan ulang di server produksi.
+            Branch::firstOrCreate(['code' => $branch['code']], $branch);
         }
     }
 }

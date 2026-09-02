@@ -15,7 +15,7 @@ class AdminSeeder extends Seeder
         $defaultBranch = Branch::where('code', 'BR-001')->first();
 
         // Create admin user with default branch
-        User::create([
+        User::firstOrCreate(['email' => 'admin@medicore.com'], [
             'name' => 'Admin Medicore',
             'email' => 'admin@medicore.com',
             'password' => Hash::make('password'),

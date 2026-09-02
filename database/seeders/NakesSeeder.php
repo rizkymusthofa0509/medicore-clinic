@@ -142,12 +142,15 @@ class NakesSeeder extends Seeder
                 $payload['branch_id'] = $branch->id;
                 $payload['status'] = 'aktif';
 
-                $nakes = Nakes::updateOrCreate(
+                $nakes = Nakes::firstOrCreate(
                     ['branch_id' => $branch->id, 'nik' => $row['nik']],
                     $payload,
                 );
 
-                $nakes->polis()->sync($poliIds);
+                // Jangan menimpa konfigurasi poli milik nakes yang sudah ada.
+                if ($nakes->wasRecentlyCreated) {
+                    $nakes->polis()->sync($poliIds);
+                }
             }
         }
     }

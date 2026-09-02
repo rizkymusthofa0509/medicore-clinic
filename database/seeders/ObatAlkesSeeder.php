@@ -78,15 +78,15 @@ class ObatAlkesSeeder extends Seeder
             $row['harga_jual'] = $row['harga_jual'] ?? 0;
             $row['stok'] = $row['stok'] ?? 0;
 
-            // Jika nama sudah ada di branch ini, update saja (idempotent)
+            // Jika nama sudah ada di branch ini, pertahankan data operasional
+            // yang mungkin telah disunting pengguna.
             $existing = ObatAlkes::where('branch_id', $branch->id)
                 ->where('kategori', $row['kategori'])
                 ->where('nama', $row['nama'])
                 ->first();
 
             if ($existing) {
-                $existing->update($row);
-                $count++;
+                $skipped++;
                 continue;
             }
 

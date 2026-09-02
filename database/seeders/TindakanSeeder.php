@@ -119,7 +119,7 @@ class TindakanSeeder extends Seeder
                     ->where('kode', $t['poli_kode'])
                     ->value('id');
 
-                Tindakan::updateOrCreate(
+                Tindakan::firstOrCreate(
                     [
                         'branch_id' => $branch->id,
                         'kode_icd9' => $t['kode_icd9'],

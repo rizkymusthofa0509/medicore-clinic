@@ -54,6 +54,9 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    // Endpoint seed awal hanya aktif bila secret ini diatur pada environment.
+    'deployment_seed_token' => env('DEPLOYMENT_SEED_TOKEN'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

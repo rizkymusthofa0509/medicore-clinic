@@ -32,7 +32,7 @@ class AsuransiSeeder extends Seeder
             if (! $branch) continue;
 
             foreach ($items as $row) {
-                Asuransi::updateOrCreate(
+                Asuransi::firstOrCreate(
                     ['branch_id' => $branch->id, 'nama_perusahaan' => $row['nama_perusahaan']],
                     array_merge($row, ['branch_id' => $branch->id]),
                 );

@@ -1,0 +1,23 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Jangan tampilkan /public pada URL bila document root hosting mengarah ke
+    # root proyek. Redirect ini hanya berlaku untuk request eksternal.
+    RewriteCond %{THE_REQUEST} \s/+public(?:/[^\s?]*)? [NC]
+    RewriteRule ^public/?(.*)$ /$1 [R=302,L,NE]
+
+    # Root proyek Laravel berisi file yang tidak boleh dapat diakses web.
+    RewriteRule ^(?:app|bootstrap|config|database|resources|routes|storage|tests|vendor)(?:/|$) - [F,L,NC]
+    RewriteRule ^(?:artisan|composer\.(?:json|lock)|package\.json|phpunit\.xml|vite\.config\.js|create_admin\.php)$ - [F,L,NC]
+    RewriteRule (^|/)\. - [F,L]
+
+    # Shared hosting yang tidak mengizinkan pengaturan DocumentRoot tetap dapat
+    # menjalankan Laravel: semua request diproses dari public/ secara internal.
+    RewriteCond %{REQUEST_URI} !^/public/ [NC]
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    # Laravel membutuhkan mod_rewrite. Minta provider hosting mengaktifkannya.
+    Require all denied
+</IfModule>

@@ -29,7 +29,7 @@ class DepoObatSeeder extends Seeder
             }
 
             foreach ($depos as $d) {
-                DepoObat::updateOrCreate(
+                DepoObat::firstOrCreate(
                     [
                         'branch_id' => $branch->id,
                         'nama_depo' => $d['nama_depo'],

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AsuransiController;
 use App\Http\Controllers\Api\AturanPakaiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\DepoObatController;
+use App\Http\Controllers\Api\DeploymentSeederController;
 use App\Http\Controllers\Api\FarmasiController;
 use App\Http\Controllers\Api\KasirController;
 use App\Http\Controllers\Api\KunjunganController;
@@ -32,6 +33,9 @@ Route::get('/ping', function () {
 });
 
 Route::post('/login', [AuthController::class, 'login']);
+
+// Hanya untuk deployment awal; secret wajib disimpan di environment server.
+Route::post('/deployment/seed', [DeploymentSeederController::class, 'run'])->middleware('throttle:3,1');
 
 // Protected routes (require Sanctum auth)
 Route::middleware('auth:sanctum')->group(function () {

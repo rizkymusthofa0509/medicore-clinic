@@ -7,6 +7,27 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## Seed awal deployment
+
+Setelah migration selesai, isi secret unik pada environment server:
+
+```env
+DEPLOYMENT_SEED_TOKEN=ganti-dengan-secret-panjang-acak
+```
+
+Lalu panggil satu endpoint berikut dari deployment pipeline. Header wajib dikirim
+dan endpoint dibatasi tiga permintaan per menit.
+
+```bash
+curl -X POST "https://domain-anda/api/deployment/seed" \
+  -H "X-Seed-Token: ganti-dengan-secret-panjang-acak"
+```
+
+Seeder membuat akun default `admin@medicore.com` dengan password `password`,
+branch, serta master awal. Seeder aman dijalankan ulang: record dengan identitas
+yang sama dilewati dan data operasional yang sudah ada tidak ditimpa. Ganti
+password admin segera setelah login pertama.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

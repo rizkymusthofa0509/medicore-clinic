@@ -32,7 +32,7 @@ class AturanPakaiSeeder extends Seeder
 
         foreach (Branch::all() as $branch) {
             foreach ($shared as $row) {
-                AturanPakai::updateOrCreate(
+                AturanPakai::firstOrCreate(
                     ['branch_id' => $branch->id, 'aturan' => $row['aturan']],
                     array_merge($row, ['branch_id' => $branch->id]),
                 );

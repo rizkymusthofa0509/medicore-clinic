@@ -61,7 +61,7 @@ class MasterDataSeeder extends Seeder
             // --- Unit Lokasi ---
             $unitByKode = [];
             foreach (($unitsPerBranch[$code] ?? []) as $u) {
-                $unit = UnitLokasi::updateOrCreate(
+                $unit = UnitLokasi::firstOrCreate(
                     ['branch_id' => $branch->id, 'kode' => $u['kode']],
                     array_merge($u, ['branch_id' => $branch->id, 'status' => 'aktif']),
                 );
@@ -73,7 +73,7 @@ class MasterDataSeeder extends Seeder
             foreach (($polisPerBranch[$code] ?? []) as $p) {
                 $unitId = $unitByKode[$p['unit']]?->id;
                 $depo = DepoObat::where('branch_id', $branch->id)->where('nama_depo', $p['depo'])->first();
-                $poli = Poli::updateOrCreate(
+                $poli = Poli::firstOrCreate(
                     ['branch_id' => $branch->id, 'kode' => $p['kode']],
                     [
                         'branch_id' => $branch->id,
@@ -92,7 +92,7 @@ class MasterDataSeeder extends Seeder
             // --- Ruangan ---
             foreach ($poliByKode as $poliKode => $poli) {
                 foreach (($ruanganPerPoli[$poliKode] ?? []) as $r) {
-                    Ruangan::updateOrCreate(
+                    Ruangan::firstOrCreate(
                         ['poli_id' => $poli->id, 'kode' => $r['kode']],
                         array_merge($r, [
                             'branch_id' => $branch->id,
