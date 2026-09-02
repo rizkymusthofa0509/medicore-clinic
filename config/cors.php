@@ -5,7 +5,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://medicore-clinic.vercel.app'],
+    // Isi CORS_ALLOWED_ORIGINS dengan URL frontend dipisahkan koma, tanpa
+    // trailing slash. Contoh: https://clinic.medicore.id,https://app.example.id
+    'allowed_origins' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', env('CORS_ALLOWED_ORIGINS', 'https://medicore-clinic.vercel.app')),
+    ))),
 
     'allowed_origins_patterns' => [
         '#^http://localhost:[0-9]+$#',
